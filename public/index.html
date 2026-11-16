@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<link rel="icon" type="image/png" href="img/fremys-mark.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FREMYS</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <aside id="side" aria-label="Main navigation">
+    <div class="brand">
+      <img class="brand-logo" src="img/fremys-mark.png" alt="" width="40" height="40">
+      <div>
+        <div class="brand-name">FREMYS</div>
+        <div class="brand-tag" data-i18n="tagline">Complaint Registration Application</div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="side-foot" id="sideFoot"></div>
+  </aside>
+  <div id="mainwrap">
+    <header id="top">
+      <button class="icon-btn only-mobile" id="navToggle" aria-label="Open menu" data-act="toggleNav">☰</button>
+      <form id="quick" role="search" data-on="submit:quickSearch">
+        <input id="quickQ" name="q" type="search" placeholder="Search registration no., CMS ref or name" aria-label="Quick search">
+      </form>
+      <div class="top-right">
+        <button class="chip-btn" id="langBtn" data-act="toggleLang" aria-label="Switch language">ދިވެހި</button>
+        <button class="icon-btn" id="bellBtn" data-act="go" data-to="notifications" aria-label="Notifications">🔔<span id="bellCount" class="badge hidden"></span></button>
+        <div id="who" class="who"></div>
+      </div>
+    </header>
+    <div id="banner" class="banner hidden" role="status"></div>
+    <main id="main" tabindex="-1"><div class="loading">Loading FREMYS…</div></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="idle" class="hidden">
+  <div class="idle-card">
+    <h2>Session paused</h2>
+    <p>FREMYS was locked after a period of inactivity to protect complaint information.</p>
+    <button class="btn primary" data-act="resume">Resume session</button>
+  </div>
+</div>
+<script src="js/cloud-runtime.js"></script>
+<script src="js/vendor/xlsx.full.min.js"></script>
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/catalogue.js"></script>
+<script src="js/views.js"></script>
+<script src="js/case.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/commission.js"></script>
+<script src="js/interim.js"></script>
+<script src="js/recs.js"></script>
+<script src="js/duty.js"></script>
+<script src="js/detention.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/perf.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/people.js"></script>
+<script src="js/classify.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
