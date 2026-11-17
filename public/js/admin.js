@@ -28,7 +28,7 @@ ADMIN_VIEWS.staff = () => {
   <div class="card section"><h3>What each role can do</h3><div class="tbl-wrap" style="margin-top:8px"><table><tbody>${Object.entries(ROLE_HELP).map(([r, h]) => `<tr><td style="white-space:nowrap"><b>${esc(ROLES[r])}</b></td><td>${esc(h)}</td></tr>`).join('')}</tbody></table></div><p class="small muted">A person may hold several roles. Confirm the division of approval authority with management.</p></div>`;
 };
 const ROLE_HELP = {
-  admin_officer: 'Registers complaints, assigns registration numbers, enters complaint details, manages incoming records and documents.',
+  admin_officer: 'Registers complaints, assigns registration numbers, enters complaint details, assigns complaints to Registration Officers, manages incoming records and documents.',
   reg_officer: 'Sees assigned complaints; records preliminary review, information requests, legal checks; prepares cases for the panel.',
   director: 'Reviews and comments on complaints, assigns officers, monitors cases, approves agendas and panel decisions.',
   dg: 'Reviews and comments on complaints, oversees the workflow, approves agendas and panel decisions.',

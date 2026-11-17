@@ -10,7 +10,7 @@ function dutyHours(d, day) { const weekend = dow(d) === 5 || dow(d) === 6 || (da
 function dutyDay(d) { return (S.duty || {})[d] || null; }
 const dutyCalls = day => vals(day && day.logs).reduce((s, l) => s + (Number(l.count) || 0), 0);
 function dutyColor(id) { const ids = staffIds('reg_officer', false).sort(); const i = ids.indexOf(id); return DUTY_COLORS[(i < 0 ? Math.abs([...String(id)].reduce((a, ch) => a + ch.charCodeAt(0), 0)) : i) % DUTY_COLORS.length]; }
-const canSchedule = () => can('assign');
+const canSchedule = () => can('dutySchedule');
 const canLogDuty = (d, day) => !!day && (day.officer === S.me.id || can('supervise') || can('admin')) && d <= today();
 function weekStart(d) { return addDays(d, -dow(d)); }
 
