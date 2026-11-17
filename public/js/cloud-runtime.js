@@ -92,8 +92,23 @@
   const sample = async (prompt, o = {}) => call('sample', { body: { prompt, system: o.system }, signal: o.signal });
   sample.json = async (prompt, o = {}) => { const r = await call('sample', { body: { prompt, system: o.system, json: true }, signal: o.signal }); const t = String(r.text || '').replace(/^```(json)?\s*|\s*```$/g, ''); const m = t.match(/\{[\s\S]*\}/); try { return JSON.parse(m ? m[0] : t); } catch { throw err('invalid_json', 'The AI answer was not valid JSON.'); } };
 
+  function showServerProblem(msg) {
+    const draw = () => {
+      const box = document.createElement('div');
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1e293b;z-index:9999;padding:20px;font-family:"Public Sans",system-ui,sans-serif';
+      box.innerHTML = '<div style="max-width:520px;background:#94a3b8;color:#0f172a;border-radius:14px;padding:24px 26px;box-shadow:0 10px 30px rgba(0,0,0,.4)"><h1 style="margin:0 0 10px;font-size:20px">FREMYS server is not ready</h1><p style="margin:0 0 12px;line-height:1.5"></p><p style="margin:0 0 16px;font-size:13px">Fix the setting in Vercel (Settings → Environment Variables), redeploy, then try again. Nothing has been changed or saved.</p><button type="button" style="background:#0284c7;color:#fff;border:0;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer">Try again</button></div>';
+      box.querySelector('p').textContent = msg || 'The server could not be reached.';
+      box.querySelector('button').onclick = () => location.reload();
+      document.body.appendChild(box);
+    };
+    if (document.body) draw(); else document.addEventListener('DOMContentLoaded', draw);
+  }
   async function boot() {
-    try { state = await call('state'); } catch (e) { state = { setup: true, me: null, ai: false, error: e.message }; }
+    for (let i = 0; ; i++) {
+      try { state = await call('state'); break; }
+      catch (e) { if (i === 0 && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 1500)); continue; } showServerProblem(e.message); await new Promise(() => {}); } // stop here: never show sign-in when the server is not working
+    }
     if (state.me) { try { await loadAll(); } catch (e) { state.me = null; signedIn = false; } }
   }
   window.FREMYS_CLOUD = {
