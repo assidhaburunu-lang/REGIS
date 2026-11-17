@@ -38,6 +38,7 @@ const NAV = [
   ['catalogue', () => can('viewAll') || can('viewAssigned')],
   ['sec', 'nav_reports'],
   ['stats', () => can('stats')],
+  ['briefing', () => can('stats')],
   ['performance', () => can('stats') || can('admin')],
   ['sec', 'nav_system'],
   ['users', () => can('admin') || can('supervise')],
