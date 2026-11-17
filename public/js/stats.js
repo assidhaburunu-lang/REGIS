@@ -19,7 +19,7 @@ function computeStats(f) {
   const monthly = months.map(m => ({ m, ids: received.filter(c => String(c.dateReceived).startsWith(m)).map(c => c.id) }));
   const stages = STAGES.map(s => ({ k: s.k, label: stageLabel(s.k), ids: received.filter(c => c.stage === s.k).map(c => c.id) }));
   // processing times (for complaints received in period)
-  const span = (fnA, fnB) => received.map(c => { const a = fnA(c), b = fnB(c); return a && b ? Math.max(0, dayDiff(a, b)) : null; }).filter(x => x != null);
+  const span = (fnA, fnB) => received.map(c => { const a = fnA(c), b = fnB(c); return a && b ? Math.max(0, workDays(a, b)) : null; }).filter(x => x != null);
   const firstAssign = c => entries(c.assignments).map(a => a.at).sort()[0] || null;
   const proc = [
     ['Receipt → registration', span(c => c.dateReceived, c => c.createdAt)],
@@ -28,8 +28,8 @@ function computeStats(f) {
     ['Receipt → first panel consideration', span(c => c.dateReceived, firstDecisionAt)],
     ['Receipt → workflow completed', span(c => c.dateReceived, completedAt)],
   ].map(([label, arr]) => ({ label, n: arr.length, avg: mean(arr), med: median(arr) }));
-  const ageB = [['0–30 days', 0, 30], ['31–60 days', 31, 60], ['61–90 days', 61, 90], ['Over 90 days', 91, 1e9]].map(([label, lo, hi]) => ({ label, ids: openNow.filter(c => { const a = dayDiff(c.dateReceived, td); return a >= lo && a <= hi; }).map(c => c.id) }));
-  const officers = staffIds('reg_officer', false).map(id => { const mine = all.filter(c => c.assignedTo === id); const open = mine.filter(c => !isDone(c)); const tasksOver = open.reduce((s, c) => s + overdueItems(c).length, 0); const doneRev = mine.filter(c => inP(c.readyAt, f)); const times = mine.map(c => { const a = firstAssign(c), b = c.readyAt; return a && b ? dayDiff(a, b) : null; }).filter(x => x != null); return { id, open: open.map(c => c.id), done: doneRev.map(c => c.id), overdueCases: open.filter(isOverdue).map(c => c.id), tasksOver, avg: mean(times) }; });
+  const ageB = [['0–30 days', 0, 30], ['31–60 days', 31, 60], ['61–90 days', 61, 90], ['Over 90 days', 91, 1e9]].map(([label, lo, hi]) => ({ label, ids: openNow.filter(c => { const a = workDays(c.dateReceived, td); return a >= lo && a <= hi; }).map(c => c.id) }));
+  const officers = staffIds('reg_officer', false).map(id => { const mine = all.filter(c => c.assignedTo === id); const open = mine.filter(c => !isDone(c)); const tasksOver = open.reduce((s, c) => s + overdueItems(c).length, 0); const doneRev = mine.filter(c => inP(c.readyAt, f)); const times = mine.map(c => { const a = firstAssign(c), b = c.readyAt; return a && b ? workDays(a, b) : null; }).filter(x => x != null); return { id, open: open.map(c => c.id), done: doneRev.map(c => c.id), overdueCases: open.filter(isOverdue).map(c => c.id), tasksOver, avg: mean(times) }; });
   const decisions = all.flatMap(c => entries(c.decisions).map(d => ({ ...d, cid: c.id }))).filter(d => inP(d.at, f));
   const meetings = vals(S.meetings).filter(m => inP(m.date, f));
   const panel = { held: meetings.filter(m => m.status === 'held').length, planned: meetings.filter(m => m.status === 'planned').length, postponed: meetings.filter(m => m.status === 'postponed' || m.status === 'cancelled').length, considered: [...new Set(decisions.map(d => d.cid))], deferred: decisions.filter(d => d.outcome === 'deferred').map(d => d.cid), actionsOpen: all.filter(c => vals(c.actions).some(a => a.decisionId && a.status !== 'done')).map(c => c.id) };
@@ -63,7 +63,7 @@ function computeStats(f) {
     reasons: Object.entries(notLodgedP.reduce((m, c) => { const r = finalDecision(c).reason || 'Reason not recorded'; (m[r] = m[r] || []).push(c.id); return m; }, {})).map(([label, ids]) => ({ label, ids })).sort((a, b) => b.ids.length - a.ids.length),
     byCat: Object.values([...lodgedP, ...notLodgedP].reduce((m, c) => { const k = c.category || 'Not classified'; const e = m[k] = m[k] || { label: k, lo: [], nl: [] }; (isLodged(c) ? e.lo : e.nl).push(c.id); return m; }, {})).sort((a, b) => (b.lo.length + b.nl.length) - (a.lo.length + a.nl.length)),
     rounds: [0, 1, 2].map(n => ({ label: n === 2 ? 'Returned twice or more' : n === 1 ? 'Returned once' : 'Decided first time', ids: [...lodgedP, ...notLodgedP].filter(c => n === 2 ? returnCount(c) >= 2 : returnCount(c) === n).map(c => c.id) })),
-    days: [...lodgedP, ...notLodgedP].map(c => dayDiff(c.dateReceived, finalDecision(c).at)) };
+    days: [...lodgedP, ...notLodgedP].map(c => workDays(c.dateReceived, finalDecision(c).at)) };
   return { lodge, all, received, openNow, completed, overdue, monthly, stages, proc, ageB, officers, panel, info, ref, byCat, byDomain, byIssue, byGroup, byTopic, byAtoll, outcomes, dq, decisions };
 }
 
@@ -113,7 +113,7 @@ VIEWS.stats = () => {
     ${statTile('Completed in period', st.completed.map(c => c.id), 'Lodged or not lodged by the panel', 'ok')}
     ${statTile('Open now', st.openNow.map(c => c.id), 'All received dates', 'info')}
     ${statTile('Overdue now', st.overdue.map(c => c.id), 'Open with a missed deadline', 'bad')}
-    <div class="tile warn" style="cursor:default"><div class="k">Median days to panel</div><div class="v num">${fmtN(med.med, 1)}</div><div class="s">Receipt → first decision · n=${med.n}</div></div>
+    <div class="tile warn" style="cursor:default"><div class="k">Median working days to panel</div><div class="v num">${fmtN(med.med, 1)}</div><div class="s">Receipt → first decision · n=${med.n}</div></div>
   </div>
   <div class="note small" style="margin-bottom:16px">These three measures overlap and must not be added together: a complaint received in December may still be open in January. It counts in December's <i>received</i> total and in the current <i>open</i> workload.</div>
   ${lodgeSectionHTML(st, f)}
@@ -124,8 +124,8 @@ VIEWS.stats = () => {
   <div class="card section"><div class="card-head"><h2>Complaints received per month</h2><span class="muted small">${rc} in period</span></div>${colChart(st.monthly)}</div>
   <div class="grid2 section">
     <div class="card"><h2>Current stage of complaints received in period</h2>${barList(st.stages.filter(s => s.ids.length), rc)}</div>
-    <div class="card"><h2>Processing time (days)</h2><div class="tbl-wrap"><table><thead><tr><th>Interval</th><th class="r">Average</th><th class="r">Median</th><th class="r">Cases</th></tr></thead><tbody>${st.proc.map(p => `<tr><td>${esc(p.label)}</td><td class="r">${fmtN(p.avg, 1)}</td><td class="r"><b>${fmtN(p.med, 1)}</b></td><td class="r">${p.n}</td></tr>`).join('')}</tbody></table></div><p class="small muted">Complaints received in the period that have reached both points.</p></div>
-    <div class="card"><h2>Pending workload by age</h2>${barList(st.ageB, st.openNow.length)}<p class="small muted">Open complaints by days since receipt.</p></div>
+    <div class="card"><h2>Processing time (working days)</h2><div class="tbl-wrap"><table><thead><tr><th>Interval</th><th class="r">Average</th><th class="r">Median</th><th class="r">Cases</th></tr></thead><tbody>${st.proc.map(p => `<tr><td>${esc(p.label)}</td><td class="r">${fmtN(p.avg, 1)}</td><td class="r"><b>${fmtN(p.med, 1)}</b></td><td class="r">${p.n}</td></tr>`).join('')}</tbody></table></div><p class="small muted">Complaints received in the period that have reached both points.</p></div>
+    <div class="card"><h2>Pending workload by age</h2>${barList(st.ageB, st.openNow.length)}<p class="small muted">Open complaints by working days since receipt (Friday, Saturday and public holidays not counted).</p></div>
     <div class="card"><h2>Panel performance</h2><dl class="kv"><dt>Meetings held</dt><dd>${st.panel.held} <span class="muted small">(${st.panel.planned} planned, ${st.panel.postponed} postponed/cancelled)</span></dd>
       <dt>Cases considered</dt><dd>${drillLink(st.panel.considered, 'Cases considered by the panel')}</dd><dt>Cases deferred</dt><dd>${drillLink(st.panel.deferred, 'Cases deferred')}</dd><dt>With outstanding panel actions</dt><dd>${drillLink(st.panel.actionsOpen, 'Cases with outstanding panel actions')}</dd></dl></div>
     <div class="card"><h2>Information requests</h2><dl class="kv"><dt>Sent in period</dt><dd>${drillLink(st.info.sent.map(r => r.cid), 'Information requests sent', st.info.sent.length)}</dd><dt>Responses received in period</dt><dd>${drillLink(st.info.received.map(r => r.cid), 'Responses received', st.info.received.length)}</dd><dt>Pending now</dt><dd>${drillLink(st.info.pending.map(r => r.cid), 'Pending information requests', st.info.pending.length)}</dd><dt>Overdue now</dt><dd>${drillLink(st.info.overdue.map(r => r.cid), 'Overdue information requests', st.info.overdue.length)}</dd></dl></div>
@@ -157,8 +157,8 @@ ACT.statExport = el => {
     ...(st.received.some(detOf) ? [{ name: 'Detention settings', rows: detExportRows(st) }] : []),
     { name: 'Monthly received', rows: [['Month', 'Received'], ...st.monthly.map(m => [m.m, m.ids.length])] },
     { name: 'Stages', rows: [['Current stage (received in period)', 'Count', '%'], ...st.stages.map(s => [s.label, s.ids.length, st.received.length ? +(s.ids.length / st.received.length * 100).toFixed(1) : 0])] },
-    { name: 'Processing time', rows: [['Interval', 'Average days', 'Median days', 'Cases'], ...st.proc.map(p => [p.label, p.avg == null ? '' : +p.avg.toFixed(1), p.med == null ? '' : +p.med.toFixed(1), p.n])] },
-    { name: 'Workload age', rows: [['Age of open complaints', 'Count'], ...st.ageB.map(a => [a.label, a.ids.length])] },
+    { name: 'Processing time', rows: [['Interval', 'Average working days', 'Median working days', 'Cases'], ...st.proc.map(p => [p.label, p.avg == null ? '' : +p.avg.toFixed(1), p.med == null ? '' : +p.med.toFixed(1), p.n])] },
+    { name: 'Workload age', rows: [['Age of open complaints (working days)', 'Count'], ...st.ageB.map(a => [a.label, a.ids.length])] },
     { name: 'Officers', rows: [['Officer', 'Open caseload', 'Reviews completed in period', 'Overdue cases', 'Overdue tasks', 'Avg days assignment to ready'], ...st.officers.map(o => [nm(o.id), o.open.length, o.done.length, o.overdueCases.length, o.tasksOver, o.avg == null ? '' : +o.avg.toFixed(1)])] },
     { name: 'Category', rows: [['Main category', 'Received in period'], ...st.byCat.map(x => [x.label, x.ids.length])] },
     { name: 'Rights domain', rows: [['Rights domain', 'Received in period'], ...st.byDomain.map(x => [x.label, x.ids.length])] },
@@ -213,7 +213,7 @@ function statSearchHTML(st, f) {
     const by = (fn, lbl) => { const o = {}; any.forEach(c => { [...new Set([].concat(fn(c)).filter(Boolean))].forEach(k => { (o[k] = o[k] || []).push(c.id); }); }); return Object.entries(o).map(([k, ids]) => ({ label: lbl ? lbl(k) : k, ids })).sort((a, b) => b.ids.length - a.ids.length); };
     const X = catIndex(); const self = t.type === 'issue' ? t.id : null;
     const co = by(c => { const cl = clsOf(c); return [cl.issueId, ...(cl.secondary || [])].filter(i => i && i !== self); }, k => X.byIssue[k]?.in || k).slice(0, 6);
-    const days = any.map(c => { const d = firstDecisionAt(c); return d ? dayDiff(c.dateReceived, d) : null; }).filter(x => x != null);
+    const days = any.map(c => { const d = firstDecisionAt(c); return d ? workDays(c.dateReceived, d) : null; }).filter(x => x != null);
     const label = t.type === 'word' ? `Cases mentioning “${t.q}”` : t.label;
     res = `<div class="row" style="justify-content:space-between;margin:12px 0 6px"><div><b style="font-size:16px">${esc(label)}</b> <span class="muted small">${esc(t.kind || 'Word or phrase')}</span></div><button class="btn sm" data-act="clearSTerm">Clear</button></div>
       <div class="tiles" style="margin-bottom:12px">
@@ -223,7 +223,7 @@ function statSearchHTML(st, f) {
         ${statTile('Overdue', over.map(c => c.id), 'Open with a missed deadline', 'bad', label + ' — overdue')}
         ${statTile('Lodged', any.filter(isLodged).map(c => c.id), (() => { const lo = any.filter(isLodged).length, nl = any.filter(isNotLodged).length; return lo + nl ? `Lodgement rate ${pctOf(lo, lo + nl)}%` : 'No final decisions yet'; })(), 'ok', label + ' — lodged')}
         ${statTile('Not lodged', any.filter(isNotLodged).map(c => c.id), 'Closed by the panel', '', label + ' — not lodged')}
-        <div class="tile" style="cursor:default"><div class="k">Median days to panel</div><div class="v num">${fmtN(median(days), 1)}</div><div class="s">n=${days.length}</div></div>
+        <div class="tile" style="cursor:default"><div class="k">Median working days to panel</div><div class="v num">${fmtN(median(days), 1)}</div><div class="s">n=${days.length}</div></div>
       </div>
       ${any.length ? `<div class="grid2"><div class="card" style="box-shadow:none"><h3>Per month</h3>${colChart(months)}</div>
         <div class="card" style="box-shadow:none"><h3>Current stage</h3>${barList(by(c => stageLabel(c.stage)), any.length)}</div>
@@ -269,7 +269,7 @@ function lodgeSectionHTML(st, f) {
       ${statTile('Awaiting Commission', st.all.filter(c => pendingCommission(c).length).map(c => c.id), 'Panel decided; not yet final', 'info', 'Awaiting Commission decision')}
       ${statTile('Changed by the Commission', st.all.filter(c => vals(c.decisions).some(d => d.commission && d.commission.status === 'rejected' && inP(d.commission.at, f))).map(c => c.id), (() => { const ds = st.all.flatMap(c => vals(c.decisions).filter(d => d.commission && inP(d.commission.at, f))); return ds.length ? `Commission agreed with ${pctOf(ds.filter(d => d.commission.status === 'approved').length, ds.length)}% of ${ds.length}` : 'No Commission decisions in period'; })(), 'bad', 'Panel decision changed by the Commission')}
       ${statTile('Interim letters to send', st.all.filter(interimPending).map(c => c.id), `${st.all.filter(c => interimPending(c) && c.interim.due < today()).length} overdue · ${st.all.filter(c => interimSent(c) && inP(c.interim.sentAt, f)).length} sent in period`, 'warn', 'Interim letter to send')}
-      <div class="tile" style="cursor:default"><div class="k">Median days to final decision</div><div class="v num">${fmtN(median(L.days), 1)}</div><div class="s">From receipt · n=${L.days.length}</div></div>
+      <div class="tile" style="cursor:default"><div class="k">Median working days to final decision</div><div class="v num">${fmtN(median(L.days), 1)}</div><div class="s">From receipt · n=${L.days.length}</div></div>
     </div>
     ${tot ? `<div class="grid2">
       <div><h3 style="margin-bottom:6px">Per month</h3>${decisionColChart(L.monthly)}<div class="row small" style="gap:12px;justify-content:center"><span style="display:inline-flex;gap:5px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#059669"></span>Lodged</span><span style="display:inline-flex;gap:5px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#64748b"></span>Not lodged</span></div></div>

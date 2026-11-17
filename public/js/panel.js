@@ -127,7 +127,7 @@ ACT.recordOutcome = el => {
     <fieldset class="oc oc-return_officer hidden" style="margin-top:12px"><legend>Return for clarification</legend>
       ${fld('What needs to be clarified', txt('clarify', '', { rows: 3, ph: 'Questions the officer must answer before the case comes back to the panel' }), { full: true, id: 'f_clarify' })}
       ${fld('Return to', `<select id="f_owner" name="owner">${staffIds('reg_officer').map(id => `<option value="${esc(id)}" ${id === c.assignedTo ? 'selected' : ''}>${esc(nm(id))}</option>`).join('') || `<option value="${esc(c.assignedTo || '')}">${esc(nm(c.assignedTo))}</option>`}</select>`, { id: 'f_owner' })}
-      ${fld('Clarification due', inp('due', addDays(today(), cfg().sla.actionDays), { type: 'date' }), { id: 'f_due' })}
+      ${fld('Clarification due', inp('due', addWorkDays(today(), cfg().sla.actionDays), { type: 'date' }), { id: 'f_due' })}
       <div class="f full"><span class="muted small">When the officer marks the case ready again, it returns to the "ready for panel" list for the next agenda.</span></div></fieldset>
     <div class="form" style="margin-top:12px">${fld('Rationale', txt('rationale', '', { req: 'the rationale', rows: 3 }), { req: true, full: true, id: 'f_rationale' })}</div>`,
     submit: 'Record decision', onSubmit: async o => {

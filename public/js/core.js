@@ -30,6 +30,7 @@ const PERMS = {
   viewAll: ['admin_officer', 'director', 'dg', 'support', 'sysadmin', 'panel'],
   viewAssigned: ['reg_officer'],
   assign: ['dg', 'director', 'sysadmin', 'admin_officer'],
+  holidays: ['sysadmin'],
   dutySchedule: ['dg', 'director', 'sysadmin'],
   mgmtComment: ['dg', 'director'],
   review: ['reg_officer', 'dg', 'director'],
@@ -142,6 +143,21 @@ const localDate = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pa
 const today = () => localDate(new Date());
 const addDays = (iso, n) => { const d = new Date((iso || today()).slice(0, 10) + 'T12:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
 const dayDiff = (a, b) => (new Date(String(b).slice(0, 10) + 'T12:00:00') - new Date(String(a).slice(0, 10) + 'T12:00:00')) / 864e5;
+/* Working days: Friday and Saturday (the Maldivian weekend) and public holidays (Administration → Public holidays) are not counted. */
+const WEEKEND = [5, 6];
+const wday = d => new Date(String(d).slice(0, 10) + 'T12:00:00').getDay();
+const holidayOf = d => (S.holidays || {})[String(d).slice(0, 10)] || null;
+const isWorkDay = d => !WEEKEND.includes(wday(d)) && !holidayOf(d);
+// The date n working days after iso (n = 0 gives the same date).
+function addWorkDays(iso, n) { let d = String(iso || today()).slice(0, 10); let k = 0; n = Math.max(0, Math.round(Number(n) || 0)); while (k < n) { d = addDays(d, 1); if (isWorkDay(d)) k++; } return d; }
+// Working days elapsed from a to b: counts the days after a up to and including b.
+function workDays(a, b) {
+  a = String(a).slice(0, 10); b = String(b).slice(0, 10); if (b < a) return -workDays(b, a);
+  const n = dayDiff(a, b); const full = Math.floor(n / 7); let w = full * (7 - WEEKEND.length); const s = wday(a);
+  for (let i = 1; i <= n % 7; i++) if (!WEEKEND.includes((s + i) % 7)) w++;
+  for (const h of Object.keys(S.holidays || {})) if (h > a && h <= b && !WEEKEND.includes(wday(h))) w--;
+  return w;
+}
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function fmtD(iso) { if (!iso) return '—'; const s = String(iso); const [y, m, d] = s.slice(0, 10).split('-'); if (!d) return esc(s); return `${d} ${MONTHS[+m - 1]} ${y}`; }
 function fmtDT(iso) { if (!iso) return '—'; const d = new Date(iso); if (isNaN(d)) return esc(iso); return `${pad2(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
@@ -213,7 +229,7 @@ const isLodged = c => { const d = finalDecision(c); return !!d && d.outcome !== 
 const isNotLodged = c => finalDecision(c)?.outcome === 'not_lodge';
 const returnCount = c => vals(c.decisions).filter(d => d.outcome === 'return_officer').length;
 const pctOf = (a, b) => b ? Math.round(a / b * 100) : null;
-function isInactive(c) { return !isDone(c) && c.lastActionAt && dayDiff(c.lastActionAt, today()) > cfg().sla.inactiveDays; }
+function isInactive(c) { return !isDone(c) && c.lastActionAt && workDays(c.lastActionAt, today()) > cfg().sla.inactiveDays; }
 function displayName(c) { if (c.confidential) return 'Confidential'; return cpOf(c).name || '—'; }
 function readiness(c) {
   const r = cfg().readiness; const items = [];

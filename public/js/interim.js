@@ -5,7 +5,7 @@ const interimPending = c => c.interim && c.interim.status === 'pending';
 const interimSent = c => c.interim && c.interim.status === 'sent';
 const LETTER_METHODS = ['Letter (post)', 'Letter (hand delivered)', 'Email', 'Collected in person', 'Viber / WhatsApp message', 'Phone call (followed by letter)'];
 function canSendInterim(c) { return c.assignedTo === S.me.id || hasRole('admin_officer') || can('supervise'); }
-function startInterim(outcome, commissionDate) { const due = addDays(today(), cfg().sla.interimDays || 7); return { status: 'pending', outcome, commissionDate: commissionDate || today(), createdAt: nowISO(), due }; }
+function startInterim(outcome, commissionDate) { const due = addWorkDays(today(), cfg().sla.interimDays || 7); return { status: 'pending', outcome, commissionDate: commissionDate || today(), createdAt: nowISO(), due }; }
 
 VIEWS.interim = () => {
   if (!can('viewAll') && !can('viewAssigned')) return noAccess();
@@ -13,7 +13,7 @@ VIEWS.interim = () => {
   const pend = all.filter(interimPending).sort((a, b) => String(a.interim.due).localeCompare(String(b.interim.due)));
   const sent = all.filter(interimSent).sort((a, b) => String(b.interim.sentAt).localeCompare(String(a.interim.sentAt)));
   const td = today(); const over = pend.filter(c => c.interim.due < td); const ids = l => l.map(c => c.id).join(',');
-  const days = sent.map(c => dayDiff(c.interim.commissionDate, c.interim.sentAt)).filter(x => x >= 0);
+  const days = sent.map(c => workDays(c.interim.commissionDate, c.interim.sentAt)).filter(x => x >= 0);
   const tab = S.interimTab || 'pending';
   const row = c => { const i = c.interim; const od = i.status === 'pending' && i.due < td; const cp = cpOf(c);
     return `<tr class="${od ? 'overdue' : ''}"><td>${caseLink(c)}<div class="muted small">${esc(c.subcategory || c.category || '')}</div></td><td>${esc(c.confidential && !canSeeRestricted(c) ? 'Confidential' : cp.name || '—')}<div class="muted small">${esc([cp.phone, cp.email].filter(Boolean).join(' · '))}</div></td>
@@ -25,7 +25,7 @@ VIEWS.interim = () => {
     <button class="tile warn" data-act="drill" data-ids="${ids(pend)}" data-label="Interim letter to send" ${pend.length ? '' : 'disabled'}><div class="k">Letters to send</div><div class="v num">${pend.length}</div><div class="s">${pend.filter(c => c.interim.outcome === 'lodge').length} lodged · ${pend.filter(c => c.interim.outcome !== 'lodge').length} not lodged</div></button>
     <button class="tile bad" data-act="drill" data-ids="${ids(over)}" data-label="Interim letter overdue" ${over.length ? '' : 'disabled'}><div class="k">Overdue</div><div class="v num">${over.length}</div><div class="s">Target: ${cfg().sla.interimDays || 7} days after the Commission</div></button>
     <button class="tile ok" data-act="drill" data-ids="${ids(sent)}" data-label="Interim letter sent" ${sent.length ? '' : 'disabled'}><div class="k">Letters sent</div><div class="v num">${sent.length}</div><div class="s">All time</div></button>
-    <div class="tile" style="cursor:default"><div class="k">Median days to send</div><div class="v num">${fmtN(median(days), 1)}</div><div class="s">From the Commission decision</div></div>
+    <div class="tile" style="cursor:default"><div class="k">Median working days to send</div><div class="v num">${fmtN(median(days), 1)}</div><div class="s">From the Commission decision</div></div>
   </div>
   <div class="tabs"><button class="${tab === 'pending' ? 'on' : ''}" data-act="interimTab" data-tab="pending">To send<span class="cnt">${pend.length}</span></button><button class="${tab === 'sent' ? 'on' : ''}" data-act="interimTab" data-tab="sent">Sent<span class="cnt">${sent.length}</span></button></div>
   ${tab === 'pending' ? (pend.length ? `<div class="tbl-wrap"><table><thead><tr><th>Complaint</th><th>${esc(t('complainant'))}</th><th>Commission decision</th><th>Decided</th><th>${esc(t('officer'))}</th><th>${esc(t('due'))}</th><th></th></tr></thead><tbody>${pend.map(row).join('')}</tbody></table></div>` : '<div class="card empty">No interim letters waiting to be sent.</div>')

@@ -6,7 +6,7 @@ const DUTY_COLORS = ['#0369a1', '#c2410c', '#047857', '#7c3aed', '#be123c', '#0f
 const CALL_TYPES = [['complaint', 'New complaint'], ['enquiry', 'Enquiry / advice'], ['followup', 'Follow-up on a case'], ['referral', 'Referred elsewhere'], ['other', 'Other']];
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const dow = d => new Date(d + 'T12:00:00').getDay();
-function dutyHours(d, day) { const weekend = dow(d) === 5 || dow(d) === 6 || (day && day.holiday); return weekend ? ['14:00', '24:00', 10] : ['08:00', '24:00', 16]; }
+function dutyHours(d, day) { const weekend = dow(d) === 5 || dow(d) === 6 || (day && day.holiday) || !!holidayOf(d); return weekend ? ['14:00', '24:00', 10] : ['08:00', '24:00', 16]; }
 function dutyDay(d) { return (S.duty || {})[d] || null; }
 const dutyCalls = day => vals(day && day.logs).reduce((s, l) => s + (Number(l.count) || 0), 0);
 function dutyColor(id) { const ids = staffIds('reg_officer', false).sort(); const i = ids.indexOf(id); return DUTY_COLORS[(i < 0 ? Math.abs([...String(id)].reduce((a, ch) => a + ch.charCodeAt(0), 0)) : i) % DUTY_COLORS.length]; }

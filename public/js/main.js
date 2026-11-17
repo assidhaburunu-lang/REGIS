@@ -171,6 +171,7 @@ async function boot() {
   db.collection('meetings').onSnapshot(snap => { const o = {}; snap.docs.forEach(d => { o[d.id] = { id: d.id, ...d.data() }; }); S.meetings = o; S.loaded.meetings = true; scheduleRender(); }, onErr('meetings'));
   db.doc('config/catalogue').onSnapshot(snap => { S.catalogue = snap.exists ? snap.data() : null; scheduleRender(); }, () => {});
   claude.use('sample').then(sm => { S.sample = sm; });
+  db.doc('config/holidays').onSnapshot(snap => { S.holidays = (snap.exists && snap.data().days) || {}; S._catUseRev = (S._catUseRev || 0) + 1; scheduleRender(); }, () => {});
   db.doc('config/settings').onSnapshot(snap => { S.cfg = snap.exists ? snap.data() : null; S.loaded.cfg = true; scheduleRender(); }, onErr('settings'));
   db.doc(`data/users/${me.id}/prefs`).get().then(snap => { if (snap.exists) { S.prefs = snap.data() || {}; if (S.prefs.lang && S.prefs.lang !== S.lang) setLang(S.prefs.lang); } }).catch(() => {});
 }

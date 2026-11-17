@@ -1,7 +1,7 @@
 'use strict';
 /* Administration: staff & roles, access requests, settings, legal library, data tools, audit trail. */
 
-const ADMIN_TABS = [['staff', 'Staff & roles'], ['catalogue', 'Classification catalogue'], ['settings', 'Settings'], ['laws', 'Legal library'], ['data', 'Data tools'], ['audit', 'Audit trail']];
+const ADMIN_TABS = [['staff', 'Staff & roles'], ['catalogue', 'Classification catalogue'], ['settings', 'Settings'], ['holidays', 'Public holidays'], ['laws', 'Legal library'], ['data', 'Data tools'], ['audit', 'Audit trail']];
 VIEWS.admin = () => {
   if (!can('admin')) return noAccess('Administration is available to System Administrators.');
   const tab = S.adminTab && ADMIN_VIEWS[S.adminTab] ? S.adminTab : 'staff'; const nReq = 0;
@@ -80,7 +80,7 @@ ADMIN_VIEWS.settings = () => {
   return `<div class="row" style="justify-content:flex-end;margin-bottom:12px"><button class="btn primary" data-act="editSettings">Edit settings</button></div>
   <div class="grid2">
     <div class="card"><h3>Registration</h3><dl class="kv"><dt>Number format</dt><dd class="mono">${esc(c.regPrefix)}-YYYY-NNNN</dd><dt>Categories</dt><dd>${c.categories.length}</dd><dt>Channels</dt><dd>${esc(c.channels.join(', '))}</dd></dl><p class="small muted">Agree the numbering format with the existing CMS convention before going live.</p></div>
-    <div class="card"><h3>Deadlines (days)</h3><dl class="kv"><dt>Assign after registration</dt><dd>${c.sla.assignDays}</dd><dt>Preliminary review</dt><dd>${c.sla.reviewDays}</dd><dt>Information request</dt><dd>${c.sla.requestDays}</dd><dt>Panel follow-up action</dt><dd>${c.sla.actionDays}</dd><dt>Interim letter</dt><dd>${c.sla.interimDays}</dd><dt>Inactive after</dt><dd>${c.sla.inactiveDays}</dd><dt>Panel interval</dt><dd>${c.panelIntervalDays}</dd><dt>Session lock after idle</dt><dd>${c.idleMinutes} min</dd></dl></div>
+    <div class="card"><h3>Deadlines (working days)</h3><dl class="kv"><dt>Assign after registration</dt><dd>${c.sla.assignDays}</dd><dt>Preliminary review</dt><dd>${c.sla.reviewDays}</dd><dt>Information request</dt><dd>${c.sla.requestDays}</dd><dt>Panel follow-up action</dt><dd>${c.sla.actionDays}</dd><dt>Interim letter</dt><dd>${c.sla.interimDays}</dd><dt>Inactive after</dt><dd>${c.sla.inactiveDays}</dd><dt>Panel interval (calendar days)</dt><dd>${c.panelIntervalDays}</dd><dt>Session lock after idle</dt><dd>${c.idleMinutes} min</dd></dl></div>
     <div class="card"><h3>Panel readiness requirements</h3><ul class="checklist"><li class="done">Registration Officer assigned</li>${[['officerReview', "Officer's preliminary review"], ['noOpenRequests', 'No outstanding information requests']].map(([k, l]) => `<li class="${c.readiness[k] ? 'done' : ''}">${esc(l)}${c.readiness[k] ? '' : ' (not required)'}</li>`).join('')}</ul></div>
     <div class="card"><h3>Duplicate matching rules</h3><ul class="checklist">${DUP_LABELS.map(([k, l]) => `<li class="${c.dupRules[k] ? 'done' : ''}">${esc(l)}</li>`).join('')}</ul><p class="small muted">Matches produce a warning; records are never rejected or merged automatically.</p></div>
     <div class="card"><h3>Panel outcomes</h3><div class="tbl-wrap"><table><thead><tr><th>Outcome</th><th>Moves case to</th></tr></thead><tbody>${c.outcomes.map(o => `<tr><td>${esc(o.label)}${o.referral ? ' ' + pill('forwards to Investigation', 'info') : ''}</td><td>${o.stage ? esc(stageLabel(o.stage)) : '<span class="muted">Unchanged</span>'}</td></tr>`).join('')}</tbody></table></div></div>
@@ -94,7 +94,7 @@ ACT.editSettings = () => {
     ${fld('Registration number prefix', inp('regPrefix', c.regPrefix, { req: 'a prefix' }), { req: true, id: 'f_regPrefix', hint: 'Letters, numbers and hyphens. Applies to new registrations.' })}
     ${fld('Panel meeting interval (days)', inp('panelIntervalDays', c.panelIntervalDays, { type: 'number', attrs: 'min="1" max="90"' }), { id: 'f_panelIntervalDays' })}
     ${fld('Session lock after idle (minutes)', inp('idleMinutes', c.idleMinutes, { type: 'number', attrs: 'min="5" max="240"' }), { id: 'f_idleMinutes' })}
-    <fieldset><legend>Deadlines (days)</legend>${[['assignDays', 'Assign after registration'], ['reviewDays', 'Preliminary review'], ['requestDays', 'Information request'], ['actionDays', 'Panel follow-up action'], ['interimDays', 'Interim letter after the Commission'], ['inactiveDays', 'Inactive after']].map(([k, l]) => fld(l, inp('sla_' + k, c.sla[k], { type: 'number', attrs: 'min="1" max="365"' }), { id: 'f_sla_' + k })).join('')}</fieldset>
+    <fieldset><legend>Deadlines (working days: Friday, Saturday and public holidays are not counted)</legend>${[['assignDays', 'Assign after registration'], ['reviewDays', 'Preliminary review'], ['requestDays', 'Information request'], ['actionDays', 'Panel follow-up action'], ['interimDays', 'Interim letter after the Commission'], ['inactiveDays', 'Inactive after']].map(([k, l]) => fld(l, inp('sla_' + k, c.sla[k], { type: 'number', attrs: 'min="1" max="365"' }), { id: 'f_sla_' + k })).join('')}</fieldset>
     <fieldset><legend>Panel readiness requirements</legend><div class="f full checks">${[['officerReview', "Officer's preliminary review recorded"], ['noOpenRequests', 'No outstanding information requests']].map(([k, l]) => `<label><input type="checkbox" name="rd_${k}" ${c.readiness[k] ? 'checked' : ''}> ${esc(l)}</label>`).join('')}</div></fieldset>
     <fieldset><legend>Duplicate matching rules</legend><div class="f full checks">${DUP_LABELS.map(([k, l]) => `<label><input type="checkbox" name="dup_${k}" ${c.dupRules[k] ? 'checked' : ''}> ${esc(l)}</label>`).join('')}</div></fieldset>
     ${fld('Channels (one per line)', txt('channels', c.channels.join('\n'), { rows: 5 }), { full: true, id: 'f_channels' })}
@@ -135,12 +135,12 @@ ADMIN_VIEWS.data = () => {
     <div class="card"><h3>Storage</h3><dl class="kv"><dt>Complaint records</dt><dd>${n}</dd><dt>Panel meetings</dt><dd>${Object.keys(S.meetings).length}</dd><dt>Staff</dt><dd>${Object.keys(S.staff).length}</dd></dl><p class="small muted">The database holds up to 25,000 records; each complaint, with its reviews, requests and decisions, is one record.</p></div>
   </div>`;
 };
-ACT.backup = () => { const data = { exportedAt: nowISO(), exportedBy: S.me.id, complaints: S.complaints, complainants: S.complainants, victims: S.victims, recommendations: S.recs, duty: S.duty, meetings: S.meetings, staff: S.staff, settings: S.cfg }; saveFile(`FREMYS-backup-${today()}.json`, JSON.stringify(data, null, 1)); };
+ACT.backup = () => { const data = { exportedAt: nowISO(), exportedBy: S.me.id, complaints: S.complaints, complainants: S.complainants, victims: S.victims, recommendations: S.recs, duty: S.duty, holidays: S.holidays || {}, meetings: S.meetings, staff: S.staff, settings: S.cfg }; saveFile(`FREMYS-backup-${today()}.json`, JSON.stringify(data, null, 1)); };
 ACT.restore = () => {
   modal({ title: 'Restore from a FREMYS backup', wide: true, body: `<p class="small" style="margin-top:0">Choose a backup file downloaded from FREMYS (<span class="mono">FREMYS-backup-YYYY-MM-DD.json</span>). Records that are not here yet are added. Staff accounts are restored without passwords: reset each person's password under Staff before they sign in.</p>
     <div class="form"><div class="f full"><label for="f_bk">Backup file</label><input id="f_bk" name="file" type="file" accept=".json,application/json"></div>
     <div class="f full"><label class="na"><input type="checkbox" name="overwrite"> Replace records that already exist here with the version in the backup</label></div>
-    <div class="f full"><label class="na"><input type="checkbox" name="settings"> Also restore the settings (registration prefix, deadlines, matching rules)</label></div></div>`,
+    <div class="f full"><label class="na"><input type="checkbox" name="settings"> Also restore the settings and public holidays (registration prefix, deadlines, matching rules)</label></div></div>`,
     submit: 'Restore', onSubmit: async (o, form) => {
       const f = form.querySelector('#f_bk').files[0]; if (!f) throw new Error('Choose the backup file.');
       let b; try { b = JSON.parse(await f.text()); } catch { throw new Error('This file is not a FREMYS backup (it is not valid JSON).'); }
@@ -156,6 +156,7 @@ ACT.restore = () => {
         const { id: _drop, ...data } = rec; await setDoc(`${col}/${id}`, data); exists ? replaced++ : added++;
       }
       if (o.settings && b.settings) await setDoc('config/settings', b.settings);
+      if (o.settings && b.holidays && Object.keys(b.holidays).length) await setDoc('config/holidays', { days: { ...(S.holidays || {}), ...b.holidays }, updatedAt: nowISO(), updatedBy: S.me.id });
       logA('data.restore', null, `${f.name}: ${added} added, ${replaced} replaced, ${skipped} skipped`);
       toast(`Restore finished: ${added} added, ${replaced} replaced, ${skipped} already here or skipped.`);
     } });
@@ -212,3 +213,64 @@ ACT.loadAudit = async () => {
   rows.sort(byAt); S.audit = { ...S.audit, rows, denied, loading: false }; logA('audit.view', null, month); render();
 };
 ACT.exportAudit = () => { const a = S.audit || {}; exportCSV(`FREMYS-audit-${a.month}.csv`, [['Time', 'Person', 'Action', 'Registration no.', 'Detail'], ...(a.rows || []).map(r => [r.at, nm(r.uid), r.action, r.reg || '', r.detail])]); };
+
+/* ----- Public holidays: excluded, with Friday and Saturday, from every working-day count (deadlines, ages, processing times) ----- */
+// Fixed-date Maldivian public holidays. Islamic holidays move every year: add them from the government's announcement.
+const FIXED_HOLIDAYS = [['01-01', "New Year's Day"], ['05-01', 'Labour Day'], ['07-26', 'Independence Day'], ['11-03', 'Victory Day'], ['11-11', 'Republic Day']];
+ADMIN_VIEWS.holidays = () => {
+  const yr = S.holYear || today().slice(0, 4); const all = Object.entries(S.holidays || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  const years = [...new Set([today().slice(0, 4), String(+today().slice(0, 4) + 1), ...all.map(([d]) => d.slice(0, 4))])].sort();
+  const list = all.filter(([d]) => d.startsWith(yr)); const edit = can('holidays');
+  const onWeekend = list.filter(([d]) => WEEKEND.includes(wday(d))).length;
+  return `<div class="note" style="margin-bottom:12px">FREMYS counts <b>working days</b> only: Friday, Saturday and the public holidays listed here are not counted in deadlines, waiting times, case ages and processing times. On these days the 1424 duty runs on weekend hours (14:00–24:00).</div>
+  <div class="card"><div class="card-head"><div class="row"><h2 style="margin:0">Public holidays</h2><select aria-label="Year" data-on="change:holYear">${years.map(y => `<option ${y === yr ? 'selected' : ''}>${y}</option>`).join('')}</select></div>
+    ${edit ? `<div class="row"><button class="btn primary" data-act="holAdd">Add holiday</button><button class="btn" data-act="holBulk">Add several…</button><button class="btn" data-act="holFixed" data-y="${yr}">Add fixed-date holidays for ${yr}</button></div>` : ''}</div>
+    ${list.length ? `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th>Added by</th>${edit ? '<th></th>' : ''}</tr></thead><tbody>${list.map(([d, h]) => `<tr><td class="num">${fmtD(d)}</td><td>${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][wday(d)]}${WEEKEND.includes(wday(d)) ? ' <span class="muted small">(weekend anyway)</span>' : ''}</td><td><b>${esc(h.name || '')}</b></td><td class="small muted">${esc(nm(h.by))}${h.at ? ' · ' + fmtD(h.at) : ''}</td>${edit ? `<td class="r"><button class="btn sm" data-act="holEdit" data-d="${d}">Edit</button> <button class="btn sm danger" data-act="holDel" data-d="${d}">Remove</button></td>` : ''}</tr>`).join('')}</tbody></table></div>
+      <p class="small muted">${list.length} holiday${list.length === 1 ? '' : 's'} in ${yr}${onWeekend ? `, ${onWeekend} of them on a Friday or Saturday` : ''}. ${list.length - onWeekend} extra non-working day${list.length - onWeekend === 1 ? '' : 's'}.</p>`
+      : `<div class="empty">No public holidays entered for ${yr}.${edit ? ' Add them from the government’s official list, including Ramazan, Eid and other Islamic holidays, whose dates change every year.' : ''}</div>`}
+  </div>`;
+};
+ON.holYear = el => { S.holYear = el.value; render(); };
+async function saveHolidays(days) { await setDoc('config/holidays', { days, updatedAt: nowISO(), updatedBy: S.me.id }); }
+ACT.holAdd = () => holForm();
+ACT.holEdit = el => holForm(el.dataset.d);
+function holForm(d0) {
+  if (!can('holidays')) return; const h = d0 ? (S.holidays || {})[d0] : null;
+  modal({ title: d0 ? 'Edit public holiday' : 'Add a public holiday', body: `<div class="form">
+    ${fld('Date', inp('date', d0 || '', { type: 'date', req: 'the date' }), { req: true, id: 'f_date' })}
+    ${fld('Holiday', inp('name', h?.name || '', { req: 'the name', ph: 'e.g. Eid al-Fitr, National Day, Government holiday' }), { req: true, id: 'f_name' })}
+    ${fld('Last day (optional, for a holiday of several days)', inp('to', '', { type: 'date' }), { id: 'f_to', hint: 'Every day from the date to this day is added.' })}</div>`,
+    submit: 'Save', onSubmit: async o => {
+      if (o.to && o.to < o.date) throw new Error('The last day is before the first day.');
+      const days = { ...(S.holidays || {}) }; if (d0 && d0 !== o.date) delete days[d0];
+      const end = o.to || o.date; if (dayDiff(o.date, end) > 31) throw new Error('A single holiday can be at most 31 days long.');
+      for (let d = o.date; d <= end; d = addDays(d, 1)) days[d] = { name: o.name.trim(), by: S.me.id, at: nowISO() };
+      await saveHolidays(days); logA('holiday.save', null, `${o.date}${o.to ? '–' + o.to : ''}: ${o.name}`); S.holYear = o.date.slice(0, 4); toast('Public holiday saved');
+    } });
+}
+ACT.holDel = async el => {
+  const d = el.dataset.d; const h = (S.holidays || {})[d]; if (!h || !confirm(`Remove ${h.name} (${fmtD(d)})?`)) return;
+  const days = { ...(S.holidays || {}) }; delete days[d]; await saveHolidays(days); logA('holiday.remove', null, `${d}: ${h.name}`); toast('Removed');
+};
+ACT.holFixed = async el => {
+  const y = el.dataset.y; const days = { ...(S.holidays || {}) }; let n = 0;
+  FIXED_HOLIDAYS.forEach(([md, name]) => { const d = `${y}-${md}`; if (!days[d]) { days[d] = { name, by: S.me.id, at: nowISO() }; n++; } });
+  if (!n) { toast(`The fixed-date holidays for ${y} are already in the list.`); return; }
+  await saveHolidays(days); logA('holiday.save', null, `${n} fixed-date holidays for ${y}`); toast(`${n} holiday${n === 1 ? '' : 's'} added. Now add the Islamic holidays for ${y}.`);
+};
+ACT.holBulk = () => {
+  modal({ title: 'Add several public holidays', wide: true, body: `<p class="small" style="margin-top:0">One holiday per line: the date, then the name. A range of dates is allowed. For example:</p>
+    <pre class="small" style="background:#e2e8f0;padding:8px 10px;border-radius:6px;margin:0 0 10px">2027-03-09 to 2027-03-12  Eid al-Fitr\n2027-05-16  Eid al-Adha\n2027-07-26  Independence Day</pre>
+    <div class="form"><div class="f full"><label for="f_lines">Holidays</label><textarea id="f_lines" name="lines" rows="10" placeholder="YYYY-MM-DD  Name"></textarea></div></div>`,
+    submit: 'Add', onSubmit: async o => {
+      const days = { ...(S.holidays || {}) }; let n = 0; const bad = [];
+      String(o.lines || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+        const m = l.match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:to|–|-)\s*(\d{4}-\d{2}-\d{2}))?\s+(.+)$/i);
+        if (!m || isNaN(new Date(m[1] + 'T12:00:00')) || (m[2] && (m[2] < m[1] || dayDiff(m[1], m[2]) > 31))) { bad.push(l); return; }
+        for (let d = m[1]; d <= (m[2] || m[1]); d = addDays(d, 1)) { days[d] = { name: m[3].trim().slice(0, 100), by: S.me.id, at: nowISO() }; n++; }
+      });
+      if (bad.length) throw new Error(`These lines could not be read: ${bad.slice(0, 3).join(' | ')}${bad.length > 3 ? ' …' : ''}`);
+      if (!n) throw new Error('Enter at least one holiday.');
+      await saveHolidays(days); logA('holiday.save', null, `${n} days added`); toast(`${n} day${n === 1 ? '' : 's'} added`);
+    } });
+};

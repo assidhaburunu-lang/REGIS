@@ -182,7 +182,7 @@ ACT.newReq = el => {
     ${fld('Requested from', inp('to', '', { req: 'who the request is directed to', ph: 'Person, office or institution' }), { req: true, id: 'f_to' })}
     ${fld('Type', sel('toType', ['Complainant', 'Victim', 'Respondent', 'Government institution', 'Other party']), { id: 'f_toType' })}
     ${fld('Information requested', txt('details', '', { req: 'what is requested', rows: 4 }), { req: true, full: true, id: 'f_details' })}
-    ${fld('Request date', inp('requestedAt', today(), { type: 'date' }), { id: 'f_requestedAt' })}${fld('Due date', inp('due', addDays(today(), cfg().sla.requestDays), { type: 'date', req: 'a due date' }), { req: true, id: 'f_due' })}
+    ${fld('Request date', inp('requestedAt', today(), { type: 'date' }), { id: 'f_requestedAt' })}${fld('Due date', inp('due', addWorkDays(today(), cfg().sla.requestDays), { type: 'date', req: 'a due date' }), { req: true, id: 'f_due' })}
   </div>`, submit: 'Create request', onSubmit: async o => {
     const rid = nid('rq');
     await updC(c.id, { requests: { [rid]: { to: o.to, toType: o.toType, details: o.details, requestedAt: o.requestedAt || today(), due: o.due, status: 'pending', by: S.me.id, at: nowISO(), attempts: {}, responses: {} } }, nextAction: `Awaiting information from ${o.to}`, nextActionDue: o.due },
@@ -265,7 +265,7 @@ function actionFields(c, prefix = '', optional = false) {
   return `<div class="form">${fld('Action to be completed', txt(prefix + 'text', '', optional ? {} : { req: 'the action' }), { req: !optional, full: true, id: 'f_' + prefix + 'text' })}
     ${fld('Responsible officer', `<select id="f_${prefix}owner" name="${prefix}owner"><option value="">— Department instead —</option>${staffIds().map(id => `<option value="${esc(id)}" ${id === c.assignedTo ? 'selected' : ''}>${esc(nm(id))}</option>`).join('')}</select>`, { id: 'f_' + prefix + 'owner' })}
     ${fld('…or responsible department', inp(prefix + 'ownerDept', '', { ph: 'e.g. Investigation Department' }), { id: 'f_' + prefix + 'ownerDept' })}
-    ${fld('Due date', inp(prefix + 'due', addDays(today(), cfg().sla.actionDays), { type: 'date' }), { id: 'f_' + prefix + 'due' })}</div>`;
+    ${fld('Due date', inp(prefix + 'due', addWorkDays(today(), cfg().sla.actionDays), { type: 'date' }), { id: 'f_' + prefix + 'due' })}</div>`;
 }
 function buildAction(o, c, p = '', extra = {}) { return { text: o[p + 'text'], owner: o[p + 'owner'] || null, ownerDept: o[p + 'owner'] ? '' : (o[p + 'ownerDept'] || ''), due: o[p + 'due'] || null, status: 'open', at: nowISO(), by: S.me.id, ...extra }; }
 ACT.completeAction = el => {
