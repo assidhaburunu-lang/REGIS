@@ -321,3 +321,17 @@ html[lang="dv"] .tabs button { font-family: var(--font-thaana); }
 .det-months .dm-bar { display: flex; flex-direction: column-reverse; border-radius: 3px 3px 0 0; overflow: hidden; min-height: 1px; }
 .det-months .dm-bar span { display: block; min-height: 0; }
 .det-months .dm-l { font-size: 11px; text-align: center; color: #334155; margin-top: 3px; }
+
+/* ---------- Reference: classification catalogue ---------- */
+details.catref { border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; margin: 8px 0; }
+details.catref > summary { cursor: pointer; padding: 10px 14px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; list-style: none; }
+details.catref > summary::-webkit-details-marker { display: none; }
+details.catref > summary::before { content: '▸'; color: #475569; transition: transform .15s; display: inline-block; }
+details.catref[open] > summary::before { transform: rotate(90deg); }
+details.catref > summary:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; border-radius: 10px; }
+details.catref[open] > summary { border-bottom: 1px solid #e2e8f0; }
+.cr-count { margin-inline-start: auto; font-size: 12px; font-weight: 700; color: #0f172a; background: #e2e8f0; border-radius: 999px; padding: 1px 9px; }
+.catref-sub { padding: 6px 14px 10px; }
+.catref-sub h3 { font-size: 14px; margin: 10px 0 6px; }
+#catRefBody mark { background: #fde68a; color: inherit; border-radius: 2px; padding: 0 1px; }
+#catRefBody .dv { font-family: 'RegisThaana', 'Faruma', sans-serif; margin-top: 2px; }

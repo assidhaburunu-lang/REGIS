@@ -33,7 +33,9 @@ const NAV = [
   ['commission', () => can('viewAll'), () => can('commission') ? vals(S.complaints).reduce((s, c) => s + pendingCommission(c).length, 0) : 0],
   ['referrals', () => can('viewAll') || can('investigation') || can('referralManage'), () => hasRole('investigation') ? vals(S.complaints).reduce((s, c) => s + vals(c.referrals).filter(r => r.status === 'sent').length, 0) : 0],
   ['people', () => can('viewAll') || can('viewAssigned')],
+  ['sec', 'nav_ref'],
   ['laws', () => can('viewAll') || can('viewAssigned')],
+  ['catalogue', () => can('viewAll') || can('viewAssigned')],
   ['sec', 'nav_reports'],
   ['stats', () => can('stats')],
   ['performance', () => can('stats') || can('admin')],
@@ -112,7 +114,7 @@ document.addEventListener('click', e => {
   Promise.resolve().then(() => fn(el, e)).catch(err => { console.error(err); toast(errText(err), 'error'); });
 });
 function onEvt(type) { return e => { const el = e.target.closest(`[data-on*="${type}:"]`); if (!el) return; const spec = el.dataset.on.split(/\s+/).find(x => x.startsWith(type + ':')); if (!spec) return; const fn = ON[spec.slice(type.length + 1)]; if (!fn) return; if (type === 'submit') e.preventDefault(); Promise.resolve().then(() => fn(el, e)).catch(err => { console.error(err); toast(errText(err), 'error'); }); }; }
-['input', 'change', 'submit'].forEach(tp => document.addEventListener(tp, onEvt(tp), true));
+['input', 'change', 'submit', 'toggle'].forEach(tp => document.addEventListener(tp, onEvt(tp), true));
 ACT.closeModal = () => closeModal();
 ACT.ovClick = () => {};
 ACT.go = el => go(el.dataset.to);
