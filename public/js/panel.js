@@ -46,7 +46,7 @@ VIEWS.meeting = (mid) => {
     <div class="row">${mg ? `<button class="btn" data-act="meetEdit" data-id="${esc(mid)}">Edit meeting</button>` : ''}
       ${can('approveAgenda') && !locked && items.length ? `<button class="btn primary" data-act="agendaApprove" data-id="${esc(mid)}">Approve agenda</button>` : ''}
       ${can('approveAgenda') && locked ? `<button class="btn" data-act="agendaReopen" data-id="${esc(mid)}">Reopen agenda</button>` : ''}
-      <button class="btn" data-act="agendaPdf" data-id="${esc(mid)}">Agenda PDF</button><button class="btn" data-act="packPdf" data-id="${esc(mid)}">Case pack PDF</button></div></div>
+      <button class="btn" data-act="agendaPdf" data-id="${esc(mid)}">Agenda PDF</button><button class="btn" data-act="packOpen" data-id="${esc(mid)}">Case pack (Word / PDF)</button></div></div>
   <div class="split">
     <div class="card"><div class="card-head"><h2>Agenda</h2><span class="muted small">${items.length} case(s)</span></div>
       ${m.status === 'cancelled' ? '<div class="note warn" style="margin-bottom:10px">This meeting is cancelled, so decisions cannot be recorded here.</div>' : ''}

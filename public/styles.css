@@ -354,3 +354,22 @@ details.catref[open] > summary { border-bottom: 1px solid #e2e8f0; }
 .brief-print { position: fixed; left: -12000px; top: 0; width: 794px; z-index: -1; }
 .brief-print .brief-page { width: 794px; padding: 28px; box-sizing: border-box; background: #fff; }
 .brief-print .brief { min-width: 0; }
+
+/* ---------- Registration Panel case pack (RDP format) ---------- */
+.pack { color: #000; font-family: "RegisThaana", "Times New Roman", serif; font-size: 14px; line-height: 1.6; min-width: 640px; }
+.pk-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: -1px; }
+.pk-tbl th, .pk-tbl td { border: 1px solid #8EAADB; padding: 6px 10px; vertical-align: top; text-align: start; color: #000; background: #fff; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.pk-tbl th { font-weight: 700; }
+.pk-tbl tr.pk-alt th, .pk-tbl tr.pk-alt td { background: #D9E2F3; }
+.pk-tbl .pk-title { text-align: center; font-size: 18px; font-weight: 700; padding: 10px; }
+.pk-tbl .pk-sub { font-size: 15px; font-weight: 400; text-decoration: underline; margin-top: 4px; }
+.pk-tbl .pk-ref { text-align: center; font-size: 20px; font-weight: 700; font-family: "Times New Roman", serif; padding: 8px; }
+.pk-tbl .pk-band { background: #4472C4; color: #fff; font-weight: 700; font-size: 16px; padding: 8px 10px; }
+.pk-tbl .pk-bar { color: #fff; font-weight: 700; font-size: 16px; padding: 8px 10px; }
+.pk-tbl .pk-oc { font-weight: 400; font-size: 14px; }
+.pk-tbl .pk-sec { font-weight: 700; text-decoration: underline; padding-top: 8px; }
+.pk-tbl .pk-who { font-weight: 400; text-decoration: none; font-size: 13px; }
+.pk-tbl .pk-txt { background: #DEEAF6; line-height: 1.8; }
+.pk-tbl .pk-txt.pk-dec { background: #fff; }
+.pk-tbl .pk-txt > div + div { margin-top: 4px; }
+.brief-print .pack { min-width: 0; }
