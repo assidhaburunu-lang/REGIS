@@ -43,9 +43,8 @@ function packData(mid, lang) {
     const show = !c.confidential || canSeeRestricted(c); const cp = cpOf(c); const vs = victimsOf(c);
     const d = entries(c.decisions).filter(x => x.meetingId === m.id).sort(byAt)[0] || null; const oc = d ? d.outcome : 'none'; // byAt sorts newest first
     if (oc === 'lodge') k.lodge++; else if (oc === 'not_lodge') k.not_lodge++; else if (oc === 'none') k.none++; else k.ret++;
-    const officer = entries(c.reviews).filter(r => r.kind === 'officer' && !sup(c).has(r.id)).sort((a, b) => byAt(b, a)).map(r => r.text + (r.questions ? `\n${lang === 'dv' ? 'ސުވާލުތައް:' : 'Questions:'}\n${r.questions}` : ''));
-    const pr = c.panelRequest || {};
-    if (pr.requested) officer.push(`${L.requested}\n${pr.requested}`); if (pr.issues) officer.push(`${L.issues}\n${pr.issues}`);
+    // Registration officer's comments = only the "Preliminary assessment and way forward" text of their review notes (corrected notes replace the originals).
+    const officer = entries(c.reviews).filter(r => r.kind === 'officer' && !sup(c).has(r.id) && String(r.text || '').trim()).sort((a, b) => byAt(b, a)).map(r => String(r.text).trim());
     const decision = d ? [L.out[oc] || outcomeLabel(oc), d.rationale || '', d.reason ? `${L.reason}\n${lang === 'dv' ? (DV_NL_REASONS[d.reason] || d.reason) : d.reason}` : '', d.clarify ? `${L.clarify}\n${d.clarify}` : ''].filter(Boolean) : [L.out.none];
     return {
       n: i + 1, oc, color: PACK_COLORS[oc] || PACK_COLORS.none, outcome: L.out[oc] || oc,
