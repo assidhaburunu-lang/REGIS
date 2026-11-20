@@ -241,6 +241,13 @@ async function loadDemo(lang = 'en') {
   if (vals(S.complaints).some(c => c.demo)) { toast('Demo data is already loaded. Delete it first to load a fresh set.', 'error'); return; }
   let data = buildDemo(100); if (lang === 'dv') data = dvifyDemo(data);
   const jobs = [...Object.entries(data.complainants).map(([id, d]) => ['complainants/' + id, d]), ...Object.entries(data.victims).map(([id, d]) => ['victims/' + id, d]), ...data.meetings.map(([id, d]) => ['meetings/' + id, d]), ...data.complaints.map(([id, d]) => ['complaints/' + id, d]), ...data.recs.map(([id, d]) => ['recs/' + id, d]), ...data.duty.filter(([id]) => !(S.duty || {})[id]).map(([id, d]) => ['duty/' + id, d])];
+  { // planned leave for the Registration Officers: one past, one current or coming up
+    const td = today(); const types = ['annual', 'annual', 'training', 'family', 'sick'];
+    staffIds('reg_officer').forEach((id, k) => {
+      const past = addWorkDays(addDays(td, -60 - k * 9), 0); jobs.push([`leave/demo_${id}_a`, { demo: true, staffId: id, type: types[k % types.length], from: past, to: addWorkDays(past, 2 + (k % 3)), note: '', status: 'planned', by: id, at: nowISO() }]);
+      const next = k === 1 ? td : addWorkDays(td, 3 + k * 4); jobs.push([`leave/demo_${id}_b`, { demo: true, staffId: id, type: k === 1 ? 'training' : 'annual', from: next, to: addWorkDays(next, 2 + (k % 4)), note: k === 1 ? 'Workshop abroad' : '', status: 'planned', by: id, at: nowISO() }]);
+    });
+  }
   const note = document.createElement('div'); note.className = 'toast'; $('#toasts').appendChild(note);
   try {
     let n = 0; for (const [p, d] of jobs) { await demoWrite(p, d); n++; if (n % 5 === 0 || n === jobs.length) note.textContent = `Loading demo data… ${n} of ${jobs.length} records`; }
@@ -250,7 +257,7 @@ async function loadDemo(lang = 'en') {
 }
 ACT.clearDemo = () => confirmBox('Delete demo data', 'Delete every complaint, person and meeting marked DEMO? Real records are not affected.', 'Delete demo data', async () => {
   closeModal();
-  const jobs = [...vals(S.complaints).filter(x => x.demo).map(c => 'complaints/' + c.id), ...Object.entries(S.complainants).filter(([, p]) => p.demo).map(([id]) => 'complainants/' + id), ...Object.entries(S.victims).filter(([, p]) => p.demo).map(([id]) => 'victims/' + id), ...vals(S.meetings).filter(x => x.demo).map(m => 'meetings/' + m.id), ...Object.entries(S.recs || {}).filter(([, r]) => r.demo).map(([id]) => 'recs/' + id), ...Object.entries(S.duty || {}).filter(([, r]) => r.demo).map(([id]) => 'duty/' + id)];
+  const jobs = [...vals(S.complaints).filter(x => x.demo).map(c => 'complaints/' + c.id), ...Object.entries(S.complainants).filter(([, p]) => p.demo).map(([id]) => 'complainants/' + id), ...Object.entries(S.victims).filter(([, p]) => p.demo).map(([id]) => 'victims/' + id), ...vals(S.meetings).filter(x => x.demo).map(m => 'meetings/' + m.id), ...Object.entries(S.recs || {}).filter(([, r]) => r.demo).map(([id]) => 'recs/' + id), ...Object.entries(S.duty || {}).filter(([, r]) => r.demo).map(([id]) => 'duty/' + id), ...Object.entries(S.leave || {}).filter(([, r]) => r.demo).map(([id]) => 'leave/' + id)];
   const note = document.createElement('div'); note.className = 'toast'; $('#toasts').appendChild(note);
   try { let n = 0; for (const p of jobs) { await delDoc(p); n++; if (n % 5 === 0) note.textContent = `Deleting demo data… ${n} of ${jobs.length}`; } logA('demo.clear', null, `${jobs.length} records`); toast('Demo data deleted'); }
   catch (e) { toast(errText(e), 'error'); } finally { note.remove(); }

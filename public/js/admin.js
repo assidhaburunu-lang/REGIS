@@ -135,7 +135,7 @@ ADMIN_VIEWS.data = () => {
     <div class="card"><h3>Storage</h3><dl class="kv"><dt>Complaint records</dt><dd>${n}</dd><dt>Panel meetings</dt><dd>${Object.keys(S.meetings).length}</dd><dt>Staff</dt><dd>${Object.keys(S.staff).length}</dd></dl><p class="small muted">The database holds up to 25,000 records; each complaint, with its reviews, requests and decisions, is one record.</p></div>
   </div>`;
 };
-ACT.backup = () => { const data = { exportedAt: nowISO(), exportedBy: S.me.id, complaints: S.complaints, complainants: S.complainants, victims: S.victims, recommendations: S.recs, duty: S.duty, holidays: S.holidays || {}, meetings: S.meetings, staff: S.staff, settings: S.cfg }; saveFile(`FREMYS-backup-${today()}.json`, JSON.stringify(data, null, 1)); };
+ACT.backup = () => { const data = { exportedAt: nowISO(), exportedBy: S.me.id, complaints: S.complaints, complainants: S.complainants, victims: S.victims, recommendations: S.recs, duty: S.duty, leave: S.leave || {}, holidays: S.holidays || {}, meetings: S.meetings, staff: S.staff, settings: S.cfg }; saveFile(`FREMYS-backup-${today()}.json`, JSON.stringify(data, null, 1)); };
 ACT.restore = () => {
   modal({ title: 'Restore from a FREMYS backup', wide: true, body: `<p class="small" style="margin-top:0">Choose a backup file downloaded from FREMYS (<span class="mono">FREMYS-backup-YYYY-MM-DD.json</span>). Records that are not here yet are added. Staff accounts are restored without passwords: reset each person's password under Staff before they sign in.</p>
     <div class="form"><div class="f full"><label for="f_bk">Backup file</label><input id="f_bk" name="file" type="file" accept=".json,application/json"></div>
@@ -145,7 +145,7 @@ ACT.restore = () => {
       const f = form.querySelector('#f_bk').files[0]; if (!f) throw new Error('Choose the backup file.');
       let b; try { b = JSON.parse(await f.text()); } catch { throw new Error('This file is not a FREMYS backup (it is not valid JSON).'); }
       if (!b || typeof b !== 'object' || !b.complaints) throw new Error('This file is not a FREMYS backup.');
-      const sets = [['complaints', b.complaints, S.complaints], ['complainants', b.complainants, S.complainants], ['victims', b.victims, S.victims], ['recs', b.recommendations, S.recs], ['duty', b.duty, S.duty], ['meetings', b.meetings, S.meetings], ['staff', b.staff, S.staff]];
+      const sets = [['complaints', b.complaints, S.complaints], ['complainants', b.complainants, S.complainants], ['victims', b.victims, S.victims], ['recs', b.recommendations, S.recs], ['duty', b.duty, S.duty], ['leave', b.leave, S.leave], ['meetings', b.meetings, S.meetings], ['staff', b.staff, S.staff]];
       let added = 0, replaced = 0, skipped = 0; const btn = $('#dlgOk');
       const total = sets.reduce((n, [, src]) => n + Object.keys(src || {}).length, 0); let done = 0;
       for (const [col, src, here] of sets) for (const [id, rec] of Object.entries(src || {})) {

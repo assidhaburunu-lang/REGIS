@@ -46,7 +46,7 @@ function dutyCell(d, compact) {
   const day = dutyDay(d); const td = today(); const [a, b] = dutyHours(d, day); const col = day ? dutyColor(day.officer) : null; const calls = dutyCalls(day);
   return `<button class="duty-cell ${d === td ? 'today' : ''} ${d < td ? 'past' : ''}" data-act="dutyDayOpen" data-d="${d}" style="${col ? `--dc:${col}` : ''}">
     <span class="dn">${+d.slice(8)}${day && day.holiday ? ' <span class="pill warn" style="font-size:10px;padding:0 5px">Holiday</span>' : ''}</span>
-    ${day ? `<span class="who" style="background:${col}">${esc(nm(day.officer))}</span>` : `<span class="muted small">${canSchedule() ? '+ Assign' : 'Unassigned'}</span>`}
+    ${day ? `<span class="who" style="background:${col}">${esc(nm(day.officer))}</span>${onLeave(day.officer, d) ? '<span class="small" style="color:#b91c1c;font-weight:700">On leave — reassign</span>' : ''}` : `<span class="muted small">${canSchedule() ? '+ Assign' : 'Unassigned'}</span>`}
     <span class="small muted">${a}–${b}</span>
     ${day && (d <= td) ? `<span class="small" style="font-weight:700;color:${vals(day.logs).length ? '#065f46' : '#b91c1c'}">${vals(day.logs).length ? calls + ' call' + (calls === 1 ? '' : 's') : 'Not logged'}</span>` : ''}
   </button>`;
@@ -80,11 +80,12 @@ ACT.dutyDayOpen = el => {
       ${day ? `<dt>Calls logged</dt><dd><b>${dutyCalls(day)}</b>${byType.length ? ' · ' + byType.map(([l, n]) => `${esc(l)}: ${n}`).join(' · ') : ''}</dd>` : ''}</dl>
     ${logs.length ? `<h3 style="margin:12px 0 6px">Call log</h3><ul class="timeline">${logs.map(l => `<li><span class="small">${fmtDT(l.at)}</span><span><b>${l.count} call${l.count == 1 ? '' : 's'}</b>${l.note ? ' — ' + esc(l.note) : ''} <span class="muted small">— ${esc(nm(l.by))}</span></span></li>`).join('')}</ul>` : ''}
     ${editable ? `<h3 style="margin:16px 0 8px">Change the schedule for this day</h3><div class="form">
-      ${fld('Officer on duty', `<select id="f_officer" name="officer"><option value="">— No one —</option>${staffIds('reg_officer').map(id => `<option value="${esc(id)}" ${day && day.officer === id ? 'selected' : ''}>${esc(nm(id))}</option>`).join('')}</select>`, { id: 'f_officer' })}
+      ${fld('Officer on duty', `<select id="f_officer" name="officer"><option value="">— No one —</option>${staffIds('reg_officer').map(id => `<option value="${esc(id)}" ${day && day.officer === id ? 'selected' : ''}>${esc(nm(id))}${onLeave(id, d) ? ' — ON LEAVE' : ''}</option>`).join('')}</select>`, { id: 'f_officer' })}
       <div class="f"><label>&nbsp;</label><label class="na"><input type="checkbox" name="holiday" ${day && day.holiday ? 'checked' : ''}> Public holiday (14:00–24:00)</label></div>
       ${fld('Note (e.g. swap agreed)', inp('note', day?.note || ''), { full: true, id: 'f_note' })}</div>` : ''}`,
     submit: editable ? 'Save schedule' : null, onSubmit: editable ? async o => {
       if (!o.officer) { if (day) { await delDoc('duty/' + d); logA('duty.clear', null, d); } return; }
+      { const lv = onLeave(o.officer, d); if (lv && !confirm(`${nm(o.officer)} is on leave on this day (${leaveText(lv)}). Schedule anyway?`)) return false; }
       await setDoc('duty/' + d, { ...(day || {}), date: d, officer: o.officer, holiday: !!o.holiday, note: o.note || '', logs: day?.logs || {}, by: S.me.id, at: nowISO() });
       logA('duty.assign', null, `${d}: ${nm(o.officer)}`); if (!day || day.officer !== o.officer) notify(o.officer, `You are on 1424 duty on ${fmtD(d)} (${dutyHours(d, { holiday: o.holiday }).slice(0, 2).join('–')})`, null);
     } : null,
@@ -114,7 +115,7 @@ ACT.dutyRotate = () => {
     ${fld('Days per officer', inp('block', '3', { type: 'number', attrs: 'min="1" max="14"' }), { id: 'f_block' })}
     <div class="f"><label>&nbsp;</label><label class="na"><input type="checkbox" name="overwrite"> Replace days that are already scheduled</label></div>
     <div class="f full"><label>Officers in rotation order</label><div id="rotList" class="stack" style="gap:4px">${offs.map((id, i) => `<div class="row rot-row" data-id="${esc(id)}" style="gap:6px"><input type="checkbox" checked aria-label="Include ${esc(nm(id))}"><span style="width:10px;height:10px;border-radius:2px;background:${dutyColor(id)}"></span><span style="flex:1">${esc(nm(id))}</span><button type="button" class="btn sm" data-act="rotMove" data-d="-1" aria-label="Move up">↑</button><button type="button" class="btn sm" data-act="rotMove" data-d="1" aria-label="Move down">↓</button></div>`).join('')}</div></div>
-    <div class="f full"><span class="muted small">The rotation continues from whoever was on duty the day before the start date.</span></div></div>`,
+    <div class="f full"><span class="muted small">The rotation continues from whoever was on duty the day before the start date. On days an officer is on leave (Staff leave calendar), the next officer in the order covers that day.</span></div></div>`,
     submit: 'Create rotation', onSubmit: async (o, form) => {
       const order = $$('.rot-row', form).filter(r => r.querySelector('input').checked).map(r => r.dataset.id);
       if (!order.length) throw new Error('Include at least one officer.'); if (o.to < o.from) throw new Error('The end date is before the start date.');
@@ -122,15 +123,15 @@ ACT.dutyRotate = () => {
       // continue from the previous officer's block
       let idx = 0, used = 0; const prev = dutyDay(addDays(o.from, -1));
       if (prev && order.includes(prev.officer)) { let k = 1; while (k < block && dutyDay(addDays(o.from, -1 - k))?.officer === prev.officer) k++; if (k >= block) idx = (order.indexOf(prev.officer) + 1) % order.length; else { idx = order.indexOf(prev.officer); used = k; } }
-      let n = 0;
+      let n = 0, covered = 0; const uncovered = [];
       for (let i = 0; i < span; i++) {
-        const d = addDays(o.from, i); const cur = dutyDay(d); const officer = order[idx];
+        const d = addDays(o.from, i); const cur = dutyDay(d); let officer = order[idx]; if (onLeave(officer, d)) { const alt = [...order.slice(idx + 1), ...order.slice(0, idx)].find(x => !onLeave(x, d)); if (alt) { officer = alt; covered++; } else uncovered.push(d); }
         if (!cur || o.overwrite) { await setDoc('duty/' + d, { ...(cur || {}), date: d, officer, holiday: cur?.holiday || false, note: cur?.note || '', logs: cur?.logs || {}, by: S.me.id, at: nowISO() }); n++; }
         used++; if (used >= block) { used = 0; idx = (idx + 1) % order.length; }
       }
       logA('duty.rotate', null, `${o.from}..${o.to}, ${block} days, ${order.length} officers`);
       notify(order, `1424 duty rota published ${fmtD(o.from)} – ${fmtD(o.to)}`, null);
-      S.dutyView = { mode: 'month', anchor: o.from }; toast(`${n} duty day${n === 1 ? '' : 's'} scheduled`);
+      S.dutyView = { mode: 'month', anchor: o.from }; toast(`${n} duty day${n === 1 ? '' : 's'} scheduled${covered ? `; ${covered} day${covered === 1 ? '' : 's'} given to another officer because of leave` : ''}${uncovered.length ? `; everyone is on leave on ${uncovered.length} day${uncovered.length === 1 ? '' : 's'}` : ''}`);
     } });
 };
 ACT.rotMove = el => { const row = el.closest('.rot-row'); const d = +el.dataset.d; const sib = d < 0 ? row.previousElementSibling : row.nextElementSibling; if (sib) d < 0 ? sib.before(row) : sib.after(row); };

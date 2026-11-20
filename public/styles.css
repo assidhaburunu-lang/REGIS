@@ -383,3 +383,18 @@ details.catref[open] > summary { border-bottom: 1px solid #e2e8f0; }
 .asg-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 .asg-list { max-height: 360px; overflow-y: auto; }
 @media (max-width: 760px) { .asg-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Reference → Staff leave calendar ---------- */
+.lv-wrap { overflow-x: auto; }
+.lv-tbl { border-collapse: collapse; table-layout: fixed; min-width: 100%; }
+.lv-tbl th, .lv-tbl td { padding: 0; border: 1px solid #cbd5e1; text-align: center; font-size: 11px; }
+.lv-tbl .lv-name { text-align: start; padding: 6px 8px; white-space: nowrap; min-width: 150px; font-size: 13px; position: sticky; inset-inline-start: 0; background: #e2e8f0; z-index: 1; }
+.lv-tbl th.lv-h { width: 28px; min-width: 28px; padding: 3px 0; line-height: 1.2; text-transform: none; letter-spacing: 0; }
+.lv-tbl td.lv-d { height: 32px; position: relative; background: #fff; cursor: default; }
+.lv-tbl td.lv-d[data-act] { cursor: pointer; }
+.lv-tbl td.lv-d[data-act]:hover { outline: 2px solid var(--sky); outline-offset: -2px; }
+.lv-tbl .lv-we { background: #e2e8f0 !important; }
+.lv-tbl .lv-today { box-shadow: inset 0 0 0 2px var(--accent-fill); }
+.lv-bar { position: absolute; inset: 7px 0; border-radius: 0; }
+.lv-duty { position: absolute; top: 2px; inset-inline-end: 2px; width: 14px; height: 14px; border-radius: 3px; background: #0f172a; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; z-index: 1; }
+.lv-duty.clash { background: #dc2626; }

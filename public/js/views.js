@@ -459,7 +459,7 @@ ACT.assignCase = el => openAssign(el.dataset.id);
 function openAssign(cid, preTo) {
   const c = S.complaints[cid]; if (!c) return; const re = !!c.assignedTo;
   // Officers ordered by workload (lightest first), as on the Case Assignation page.
-  const opts = rankedOfficers().map((o, i) => [o.id, `${nm(o.id)} — ${o.open.length} open, ${o.overdue.length} overdue, ${o.pts} pts${o.duty === 'today' ? ', on 1424 duty today' : ''}${i === 0 ? ' (lightest)' : ''}`]);
+  const opts = rankedOfficers().map((o, i) => [o.id, `${nm(o.id)} — ${o.open.length} open, ${o.overdue.length} overdue, ${o.pts} pts${o.duty === 'today' ? ', on 1424 duty today' : ''}${leaveTag(o) ? ', ' + leaveTag(o).toUpperCase() : ''}${i === 0 && !o.away ? ' (lightest)' : ''}`]);
   if (!opts.length) { toast('No active Registration Officers. Add the role to staff under Administration.', 'error'); return; }
   modal({ title: `${re ? 'Reassign' : 'Assign'} ${c.regNo}`, body: `<div class="form">
     ${fld('Registration Officer', sel('to', opts, preTo || '', { req: 'an officer' }), { req: true, full: true, id: 'f_to' })}
@@ -468,6 +468,7 @@ function openAssign(cid, preTo) {
     ${fld('Preliminary review due', inp('due', addWorkDays(today(), cfg().sla.reviewDays), { type: 'date' }), { id: 'f_due' })}
   </div>`, submit: re ? 'Reassign' : 'Assign', onSubmit: async o => {
     if (o.to === c.assignedTo) throw new Error('This complaint is already assigned to that officer.');
+    const lv = onLeave(o.to, today()); if (lv && !confirm(`${nm(o.to)} is on leave until ${fmtD(lv.to)}. Assign anyway?`)) return false;
     await assignComplaint(c, o.to, o); toast(`${c.regNo} assigned to ${nm(o.to)}`);
   } });
 }

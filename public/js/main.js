@@ -37,6 +37,7 @@ const NAV = [
   ['sec', 'nav_ref'],
   ['laws', () => can('viewAll') || can('viewAssigned')],
   ['catalogue', () => can('viewAll') || can('viewAssigned')],
+  ['leave', () => true, () => { const td = today(); return leaveList().filter(l => l.staffId === S.me.id && l.from <= td && l.to >= td).length ? 0 : 0; }],
   ['sec', 'nav_reports'],
   ['stats', () => can('stats')],
   ['briefing', () => can('stats')],
@@ -169,6 +170,7 @@ async function boot() {
   const peopleSub = (col) => db.collection(col).onSnapshot(snap => { S[col] = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); if (!snap.metadata.fromCache) S.loaded[col] = true;
     scheduleRender(); }, onErr(col));
   peopleSub('complainants'); peopleSub('victims');
+  db.collection('leave').onSnapshot(snap => { S.leave = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); scheduleRender(); }, onErr('leave'));
   db.collection('duty').onSnapshot(snap => { S.duty = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); scheduleRender(); }, onErr('1424 duty'));
   db.collection('recs').onSnapshot(snap => { S.recs = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); scheduleRender(); }, onErr('recommendations'));
   db.collection('meetings').onSnapshot(snap => { const o = {}; snap.docs.forEach(d => { o[d.id] = { id: d.id, ...d.data() }; }); S.meetings = o; S.loaded.meetings = true; scheduleRender(); }, onErr('meetings'));
