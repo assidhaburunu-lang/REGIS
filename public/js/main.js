@@ -62,7 +62,7 @@ function renderNav() {
 }
 function renderWho() {
   const r = myRoles();
-  $('#who').innerHTML = S.me.id ? `<button class="who-btn" data-act="accountMenu" aria-label="My account"><span class="avatar">${esc((S.me.name || '?').trim().charAt(0).toUpperCase())}</span><div class="meta"><div></div><div class="roles" title="${esc(r.map(x => ROLES[x]).join(', '))}">${esc(r.length > 2 ? `${ROLES[r[0]]} +${r.length - 1} roles` : r.map(x => ROLES[x]).join(', ') || 'No role')}</div></div></button>` : '';
+  $('#who').innerHTML = S.me.id ? `<button class="who-btn" data-act="accountMenu" aria-label="My account"><span class="avatar">${esc((S.me.name || '?').trim().charAt(0).toUpperCase())}</span><div class="meta"><div></div><div class="roles" title="${esc(r.map(x => ROLES[x]).join(', '))}">${esc(r.length > 2 ? `${ROLES[r[0]]} +${r.length - 1} roles` : r.map(x => ROLES[x]).join(', ') || 'No role')}</div></div></button><button class="logout-btn" data-act="logoutAsk" title="Log out of FREMYS" aria-label="Log out"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Log out</span></button>` : '';
   const nameEl = $('#who .meta div'); if (nameEl) nameEl.textContent = S.me.name || 'Signed in';
   $('#quick').classList.toggle('hidden', !S.me.id); $('#bellBtn').classList.toggle('hidden', !S.me.id);
   const unread = vals(S.notif.items).filter(i => !i.read).length; const b = $('#bellCount'); b.textContent = unread; b.classList.toggle('hidden', !unread);

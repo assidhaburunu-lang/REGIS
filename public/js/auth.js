@@ -55,6 +55,7 @@ function signOut(reason) {
   if (window.FREMYS_CLOUD) { try { sessionStorage.setItem('fremys.loginMsg', reason || ''); } catch (e) {} setTimeout(() => FREMYS_CLOUD.logout(), 200); }
 }
 ACT.signOut = () => signOut('');
+ACT.logoutAsk = () => confirmBox('Log out?', `You will be logged out of FREMYS as ${S.me.name}. Anything you have saved stays saved; unsaved text in an open form is lost.`, 'Log out', () => signOut('You have logged out.'), true);
 
 /* Decide what to show once staff records have loaded */
 async function afterStaffLoaded() {
@@ -165,7 +166,7 @@ ACT.ownerRecovery = () => {
 ACT.accountMenu = () => {
   if (!S.me.id) return;
   const s = S.staff[S.me.id] || {};
-  modal({ title: 'My account', body: `<dl class="kv" style="margin-bottom:14px"><dt>Name</dt><dd>${esc(S.me.name)}</dd><dt>Username</dt><dd class="mono">${esc(s.username || '—')}</dd><dt>Roles</dt><dd>${(s.roles || []).map(r => pill(ROLES[r])).join(' ')}</dd></dl><h3 style="margin-bottom:8px">Change password</h3>${changePwForm(true)}`, foot: '<button type="button" class="btn danger" data-act="signOut">Sign out</button>' });
+  modal({ title: 'My account', body: `<dl class="kv" style="margin-bottom:14px"><dt>Name</dt><dd>${esc(S.me.name)}</dd><dt>Username</dt><dd class="mono">${esc(s.username || '—')}</dd><dt>Roles</dt><dd>${(s.roles || []).map(r => pill(ROLES[r])).join(' ')}</dd></dl><div class="row" style="justify-content:space-between;align-items:center;padding:10px 12px;margin-bottom:14px;border:1px solid var(--line);border-radius:8px"><span class="small">Finished for now, or using a shared computer?</span><button type="button" class="btn danger" data-act="signOut">Log out</button></div><h3 style="margin-bottom:8px">Change password</h3>${changePwForm(true)}` });
 };
 
 /* Administrator: create accounts and reset passwords */
