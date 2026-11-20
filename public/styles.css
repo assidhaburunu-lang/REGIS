@@ -373,3 +373,13 @@ details.catref[open] > summary { border-bottom: 1px solid #e2e8f0; }
 .pk-tbl .pk-txt.pk-dec { background: #fff; }
 .pk-tbl .pk-txt > div + div { margin-top: 4px; }
 .brief-print .pack { min-width: 0; }
+
+/* ---------- Work → Case Assignation ---------- */
+.asg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
+.asg-card { display: flex; flex-direction: column; gap: 8px; }
+.asg-load { display: flex; align-items: center; gap: 8px; }
+.asg-load .bar-track { flex: 1; height: 10px; }
+.asg-load .bar-fill { height: 10px; }
+.asg-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.asg-list { max-height: 360px; overflow-y: auto; }
+@media (max-width: 760px) { .asg-grid { grid-template-columns: 1fr; } }

@@ -110,7 +110,7 @@ function cfg() { const c = S.cfg || {}; const o = { ...DEFAULT_CFG, ...c }; o.re
 /* ---------- i18n (Dhivehi strings are a working draft for staff review) ---------- */
 const T = {
   tagline: ['Complaint Registration Application', 'ޝަކުވާ ރަޖިސްޓްރީކުރާ ނިޒާމު'],
-  nav_work: ['Work', 'މަސައްކަތް'], nav_panel: ['Panel', 'ޕެނަލް'], nav_ref: ['Reference', 'ރިފަރެންސް'], briefing: ['Daily Briefing', 'ޑެއިލީ ބްރީފިންގ'], panelbrief: ['Panel Briefing', 'ޕެނަލް ބްރީފިންގ'], catref: ['Classification Catalogue', 'ގިންތިކުރުމުގެ ކެޓަލޮގު'], catalogue: ['Classification Catalogue', 'ގިންތިކުރުމުގެ ކެޓަލޮގު'], nav_reports: ['Reports', 'ރިޕޯޓް'], nav_system: ['System', 'ސިސްޓަމް'],
+  nav_work: ['Work', 'މަސައްކަތް'], nav_panel: ['Panel', 'ޕެނަލް'], nav_ref: ['Reference', 'ރިފަރެންސް'], briefing: ['Daily Briefing', 'ޑެއިލީ ބްރީފިންގ'], assignation: ['Case Assignation', 'ކޭސް ހަވާލުކުރުން'], panelbrief: ['Panel Briefing', 'ޕެނަލް ބްރީފިންގ'], catref: ['Classification Catalogue', 'ގިންތިކުރުމުގެ ކެޓަލޮގު'], catalogue: ['Classification Catalogue', 'ގިންތިކުރުމުގެ ކެޓަލޮގު'], nav_reports: ['Reports', 'ރިޕޯޓް'], nav_system: ['System', 'ސިސްޓަމް'],
   dashboard: ['Overview', 'ޖުމްލަ ޚުލާޞާ'], register: ['Complaint register', 'ޝަކުވާތަކުގެ ރަޖިސްޓަރީ'], new: ['New registration', 'އާ ރަޖިސްޓްރޭޝަން'],
   assign: ['Assignment & workload', 'ހަވާލުކުރުމާއި މަސައްކަތު ބުރަ'], requests: ['Information requests', 'މަޢުލޫމާތަށް އެދުންތައް'], actions: ['Follow-up actions', 'ފޮލޯއަޕް ފިޔަވަޅުތައް'],
   interim: ['Interim phase', 'ދެމެދު މަރުޙަލާ'],

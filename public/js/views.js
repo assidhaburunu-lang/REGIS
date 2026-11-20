@@ -456,25 +456,28 @@ function myAssignView(noCases) {
 }
 ACT.drillOfficer = el => { S.filter = { officer: el.dataset.id, preset: 'open' }; go('register'); };
 ACT.assignCase = el => openAssign(el.dataset.id);
-function openAssign(cid) {
-  const c = S.complaints[cid]; if (!c) return; const re = !!c.assignedTo; const cs = vals(S.complaints);
-  const opts = staffIds('reg_officer').map(id => { const n = cs.filter(x => x.assignedTo === id && !isDone(x)).length; return [id, `${nm(id)} — ${n} open case${n === 1 ? '' : 's'}`]; });
+function openAssign(cid, preTo) {
+  const c = S.complaints[cid]; if (!c) return; const re = !!c.assignedTo;
+  // Officers ordered by workload (lightest first), as on the Case Assignation page.
+  const opts = rankedOfficers().map((o, i) => [o.id, `${nm(o.id)} — ${o.open.length} open, ${o.overdue.length} overdue, ${o.pts} pts${o.duty === 'today' ? ', on 1424 duty today' : ''}${i === 0 ? ' (lightest)' : ''}`]);
   if (!opts.length) { toast('No active Registration Officers. Add the role to staff under Administration.', 'error'); return; }
   modal({ title: `${re ? 'Reassign' : 'Assign'} ${c.regNo}`, body: `<div class="form">
-    ${fld('Registration Officer', sel('to', opts, '', { req: 'an officer' }), { req: true, full: true, id: 'f_to' })}
+    ${fld('Registration Officer', sel('to', opts, preTo || '', { req: 'an officer' }), { req: true, full: true, id: 'f_to' })}
     ${re ? fld('Reason for reassignment', txt('reason', '', { req: 'the reason for reassignment' }), { req: true, full: true, id: 'f_reason' }) : ''}
     ${fld('Instructions', txt('instructions', '', { ph: 'Anything the officer should know or do first' }), { full: true, id: 'f_instructions' })}
     ${fld('Preliminary review due', inp('due', addWorkDays(today(), cfg().sla.reviewDays), { type: 'date' }), { id: 'f_due' })}
   </div>`, submit: re ? 'Reassign' : 'Assign', onSubmit: async o => {
     if (o.to === c.assignedTo) throw new Error('This complaint is already assigned to that officer.');
-    const aid = nid('as'); const stage = c.stage === 'registered' ? 'prelim_review' : c.stage;
-    await updC(cid, { assignedTo: o.to, assignedAt: nowISO(), stage, nextAction: 'Preliminary review and preparation for the panel', nextActionDue: o.due || null,
-      assignments: { [aid]: { to: o.to, by: S.me.id, at: nowISO(), instructions: o.instructions || '', reason: o.reason || '', prev: c.assignedTo || null } } },
-      { stage: stage !== c.stage ? stage : null, note: `${re ? 'Reassigned' : 'Assigned'} to ${nm(o.to)}${o.reason ? ' — ' + o.reason : ''}`, action: re ? 'case.reassign' : 'case.assign' });
-    notify(o.to, `${c.regNo} has been assigned to you for preliminary review`, cid);
-    if (re && c.assignedTo) notify(c.assignedTo, `${c.regNo} has been reassigned to ${nm(o.to)}`, cid);
-    toast(`${c.regNo} assigned to ${nm(o.to)}`);
+    await assignComplaint(c, o.to, o); toast(`${c.regNo} assigned to ${nm(o.to)}`);
   } });
+}
+async function assignComplaint(c, to, o = {}) {
+  const re = !!c.assignedTo; const aid = nid('as'); const stage = c.stage === 'registered' ? 'prelim_review' : c.stage;
+  await updC(c.id, { assignedTo: to, assignedAt: nowISO(), stage, nextAction: 'Preliminary review and preparation for the panel', nextActionDue: o.due || addWorkDays(today(), cfg().sla.reviewDays),
+    assignments: { [aid]: { to, by: S.me.id, at: nowISO(), instructions: o.instructions || '', reason: o.reason || '', prev: c.assignedTo || null } } },
+    { stage: stage !== c.stage ? stage : null, note: `${re ? 'Reassigned' : 'Assigned'} to ${nm(to)}${o.reason ? ' — ' + o.reason : ''}`, action: re ? 'case.reassign' : 'case.assign' });
+  notify(to, `${c.regNo} has been assigned to you for preliminary review`, c.id);
+  if (re && c.assignedTo) notify(c.assignedTo, `${c.regNo} has been reassigned to ${nm(to)}`, c.id);
 }
 
 /* ---------- Information requests (all cases) ---------- */

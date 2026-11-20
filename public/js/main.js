@@ -23,6 +23,7 @@ const NAV = [
   ['dashboard', () => can('viewAll') || can('viewAssigned')],
   ['register', () => can('viewAll') || can('viewAssigned')],
   ['new', () => can('register')],
+  ['assignation', () => can('assign'), () => visibleCases().filter(c => c.stage === 'registered' && !c.assignedTo).length],
   ['assign', () => can('assign') || can('viewAll') || can('viewAssigned'), () => can('assign') ? vals(S.complaints).filter(c => c.stage === 'registered').length : 0],
   ['requests', () => can('viewAll') || can('viewAssigned'), () => visibleCases().reduce((s, c) => s + openReqs(c).length, 0)],
   ['actions', () => can('viewAll') || can('viewAssigned'), () => recsList().filter(r => r.owner === S.me.id && recOverdue(r)).length],
