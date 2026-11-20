@@ -39,6 +39,7 @@ const NAV = [
   ['sec', 'nav_reports'],
   ['stats', () => can('stats')],
   ['briefing', () => can('stats')],
+  ['panelbrief', () => can('stats')],
   ['performance', () => can('stats') || can('admin')],
   ['sec', 'nav_system'],
   ['users', () => can('admin') || can('supervise')],

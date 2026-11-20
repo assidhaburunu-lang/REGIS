@@ -42,7 +42,7 @@ function packData(mid, lang) {
     if (pr.requested) officer.push(`${L.requested}\n${pr.requested}`); if (pr.issues) officer.push(`${L.issues}\n${pr.issues}`);
     const decision = d ? [L.out[oc] || outcomeLabel(oc), d.rationale || '', d.reason ? `${L.reason}\n${d.reason}` : '', d.clarify ? `${L.clarify}\n${d.clarify}` : ''].filter(Boolean) : [L.out.none];
     return {
-      n: i + 1, color: PACK_COLORS[oc] || PACK_COLORS.none, outcome: L.out[oc] || oc,
+      n: i + 1, oc, color: PACK_COLORS[oc] || PACK_COLORS.none, outcome: L.out[oc] || oc,
       fields: [c.cmsRef || L.none, c.regNo, briefDate(String(c.dateReceived || c.createdAt || today()), L),
         show ? (cp.name || L.none) : L.conf,
         !show ? L.conf : vs.length ? vs.map(v => v.name).join('، ') : (c.victimSame ? (cp.name || L.same) : L.none),
@@ -162,3 +162,30 @@ ACT.packPdf2 = async el => {
   catch (e) { toast('Could not build the PDF: ' + errText(e), 'error'); }
   finally { el.disabled = false; el.textContent = old; }
 };
+
+/* ---------- Reports → Panel Briefing: one panel meeting's agenda and decisions, with the case pack in Word / PDF ---------- */
+function panelBriefMeetings() { return vals(S.meetings).filter(m => (m.agenda || []).length && m.status !== 'cancelled').sort((a, b) => String(b.date).localeCompare(String(a.date))); }
+VIEWS.panelbrief = () => {
+  if (!can('stats')) return noAccess();
+  const ms = panelBriefMeetings();
+  if (!ms.length) return `<div class="page-head"><div><h1>${esc(t('panelbrief'))}</h1><p>Decisions of a Registration Panel meeting, with the case pack in Word or PDF.</p></div></div><div class="card"><div class="empty">No panel meeting has an agenda yet.</div></div>`;
+  let mid = S.pbMeeting; if (!mid || !S.meetings[mid]) { const held = ms.find(m => m.date <= today()); mid = S.pbMeeting = (held || ms[ms.length - 1]).id; }
+  const lang = S.packLang || 'dv'; const P = packData(mid, lang); const m = P.m;
+  const tile = (k, n, cls, col) => `<div class="tile ${cls}" style="cursor:default${col ? `;border-top:5px solid #${col}` : ''}"><div class="k">${esc(k)}</div><div class="v num">${n}</div><div class="s">${P.N ? pctOf(n, P.N) + '% of the agenda' : ''}</div></div>`;
+  const PE = lang === 'en' ? P : packData(mid, 'en'); // the on-screen table is in English, like the rest of the page
+  const rows = PE.cases.map(x => `<tr><td>${x.n}</td><td style="white-space:nowrap">${esc(x.fields[1])}</td><td dir="auto">${esc(x.fields[3])}</td><td dir="auto" class="small">${esc(x.fields[6])}</td><td><span class="pill" style="background:#${x.color};color:#fff">${esc({ lodge: 'Lodged', not_lodge: 'Not lodged', return_officer: 'Returned to officer', deferred: 'Deferred', none: 'Not decided' }[x.oc] || x.outcome)}</span></td><td dir="auto" class="small">${esc(x.decision.slice(1).join(' ') || '—')}</td></tr>`).join('');
+  return `<div class="page-head"><div><h1>${esc(t('panelbrief'))}</h1><p>The agenda and decisions of a Registration Panel meeting, with the case pack in the RDP format as Word or PDF. Green is lodged, blue is not lodged, orange is returned or deferred, grey is not decided yet.</p></div>
+    <div class="row"><button class="btn primary" data-act="packDocx" data-id="${esc(mid)}">Word report</button><button class="btn primary" data-act="packPdf2" data-id="${esc(mid)}">PDF report</button></div></div>
+  <div class="card"><div class="filters">
+    <div class="f wide"><label for="pb_m">Panel meeting</label><select id="pb_m" data-on="change:pbMeeting">${ms.map(x => `<option value="${esc(x.id)}" ${x.id === mid ? 'selected' : ''}>RDP/${String(x.date).slice(0, 4)}/${String(meetingNo(x)).padStart(2, '0')} · ${fmtD(x.date)} · ${(x.agenda || []).length} case${(x.agenda || []).length === 1 ? '' : 's'}${x.date > today() ? ' (upcoming)' : ''}</option>`).join('')}</select></div>
+    <div class="f"><label for="pb_lang">Report language</label><select id="pb_lang" data-on="change:pbLang"><option value="dv" ${lang === 'dv' ? 'selected' : ''}>ދިވެހި (Dhivehi)</option><option value="en" ${lang === 'en' ? 'selected' : ''}>English</option></select></div>
+    <div class="f"><label>&nbsp;</label><a class="btn sm" href="#meeting-${esc(mid)}">Open the meeting</a></div></div>
+    <p class="small muted" style="margin:6px 0 0">${esc(P.ref)} · ${fmtD(m.date)}${m.time ? ' ' + esc(m.time) : ''}${m.venue ? ' · ' + esc(m.venue) : ''} · status: ${esc(m.status || 'planned')}</p></div>
+  <div class="tiles section">
+    ${tile('Cases on the agenda', P.N, 'info')}${tile('Lodged', P.k.lodge, 'ok', PACK_COLORS.lodge)}${tile('Not lodged', P.k.not_lodge, '', PACK_COLORS.not_lodge)}${tile('Returned / deferred', P.k.ret, 'warn', PACK_COLORS.deferred)}${P.k.none ? tile('Not decided yet', P.k.none, '', PACK_COLORS.none) : ''}
+  </div>
+  <div class="card section"><h2>Panel decisions</h2><div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(t('reg_no'))}</th><th>${esc(t('complainant'))}</th><th>Rights concerned</th><th>Decision</th><th>Reasons</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card section"><div class="card-head"><h2>Case pack preview</h2><span class="muted small">Word and PDF use the same layout.</span></div><div class="brief-wrap">${packHTML(P)}</div></div>`;
+};
+ON.pbMeeting = el => { S.pbMeeting = el.value; render(); };
+ON.pbLang = el => { S.packLang = el.value; render(); };
