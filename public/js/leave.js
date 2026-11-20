@@ -36,6 +36,7 @@ VIEWS.leave = () => {
       <tbody>${people.map(id => { const n = days.filter(d => onLeave(id, d) && isWorkDay(d)).length; return `<tr><td class="lv-name">${esc(nm(id))}</td>${days.map(d => cell(id, d)).join('')}<td class="r">${n || ''}</td></tr>`; }).join('') || `<tr><td colspan="${dim + 2}" class="empty">No staff to show.</td></tr>`}</tbody></table></div>
     <div class="row small" style="gap:12px;margin-top:8px">${Object.values(LEAVE_TYPES).map(([l, c]) => `<span style="display:inline-flex;gap:5px;align-items:center"><span style="width:14px;height:8px;border-radius:2px;background:${c}"></span>${esc(l)}</span>`).join('')}<span><span class="lv-duty" style="position:static;display:inline-flex">D</span> 1424 duty</span><span><span class="lv-duty clash" style="position:static;display:inline-flex">D</span> duty during leave</span><span class="muted">Shaded columns: Friday, Saturday and public holidays. Click an empty future day to add leave, or a coloured day to change it.</span></div>
     <div class="row small" style="gap:12px;margin-top:8px">${Object.values(LEAVE_TYPES).map(([l, c]) => `<span style="display:inline-flex;gap:5px;align-items:center"><span style="width:14px;height:8px;border-radius:2px;background:${c}"></span>${esc(l)}</span>`).join('')}<span><span class="lv-duty" style="position:static;display:inline-flex">D</span> 1424 duty</span><span><span class="lv-duty clash" style="position:static;display:inline-flex">D</span> duty during leave</span><span class="muted">Shaded columns: Friday, Saturday and public holidays. Click an empty future day to add leave, or a coloured day to change it.</span></div>`}
+  ${leavePlannerHTML(y, people)}
   <div class="card section"><h2>Upcoming leave</h2>${upcoming.length ? `<div class="tbl-wrap"><table><thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th class="r">Working days</th><th>Note</th><th>Effect</th><th></th></tr></thead><tbody>${upcoming.map(l => {
       const clash = Object.entries(S.duty || {}).filter(([d, x]) => x.officer === l.staffId && d >= l.from && d <= l.to).map(([d]) => d);
       const open = vals(S.complaints).filter(c => c.assignedTo === l.staffId && !isDone(c) && c.nextActionDue && c.nextActionDue >= l.from && c.nextActionDue <= l.to).length;
@@ -85,4 +86,37 @@ function leaveYearHTML(y, people) {
     <tbody>${people.map(id => `<tr><td class="lv-name">${esc(nm(id))}</td>${months.map(mo => `<td class="ly-m ${mo.ym === td.slice(0, 7) ? 'cur' : ''}"><div class="ly-strip">${strip(id, mo)}</div></td>`).join('')}<td class="r"><b>${wdIn(id) || ''}</b></td></tr>`).join('') || `<tr><td colspan="14" class="empty">No staff to show.</td></tr>`}</tbody></table></div>
   <div class="row small" style="gap:12px;margin-top:8px">${Object.values(LEAVE_TYPES).map(([l, c]) => `<span style="display:inline-flex;gap:5px;align-items:center"><span style="width:14px;height:8px;border-radius:2px;background:${c}"></span>${esc(l)}</span>`).join('')}<span style="display:inline-flex;gap:5px;align-items:center"><span style="width:14px;height:8px;border-radius:2px;background:#fff;box-shadow:inset 0 -3px 0 #dc2626"></span>1424 duty during leave</span><span class="muted">Each thin line is one day; grey lines are Fridays, Saturdays and public holidays. Click a month name to open it, or a coloured day to change that leave.</span></div>
   ${yl.length ? `<h3 style="margin:16px 0 8px">Working days of leave in ${y}, by type</h3><div class="tbl-wrap"><table><thead><tr><th>Staff</th>${typesUsed.map(k => `<th class="r">${esc(LEAVE_TYPES[k][0])}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${people.filter(id => wdIn(id)).map(id => `<tr><td>${esc(nm(id))}</td>${typesUsed.map(k => `<td class="r">${wdIn(id, k) || '—'}</td>`).join('')}<td class="r"><b>${wdIn(id)}</b></td></tr>`).join('') || `<tr><td colspan="${typesUsed.length + 2}" class="empty">None of the staff shown have leave in ${y}.</td></tr>`}</tbody></table></div>` : `<div class="empty" style="margin-top:12px">No leave recorded for ${y}.</div>`}`;
+}
+
+
+/* Year planner: twelve month calendars (Sunday–Saturday). Each person's leave is a bar in their own colour across the days;
+   when several people are away at the same time their bars stack one below the other. */
+const PLANNER_LANES = 3;
+function leavePlannerHTML(y, people) {
+  const td = today(); const shown = new Set(people); const ys = `${y}-01-01`, ye = `${y}-12-31`;
+  const ll = leaveList().filter(l => shown.has(l.staffId) && l.to >= ys && l.from <= ye).sort((a, b) => a.from.localeCompare(b.from) || b.to.localeCompare(a.to) || String(nm(a.staffId)).localeCompare(nm(b.staffId)));
+  const first = id => String(nm(id)).trim().split(/\s+/)[0];
+  const month = i => {
+    const ym = `${y}-${pad2(i + 1)}`; const n = new Date(y, i + 1, 0).getDate(); const lead = new Date(y, i, 1).getDay();
+    const cells = [...Array(lead).fill(null), ...[...Array(n)].map((_, k) => `${ym}-${pad2(k + 1)}`)]; while (cells.length % 7) cells.push(null);
+    const weeks = []; for (let w = 0; w < cells.length; w += 7) weeks.push(cells.slice(w, w + 7));
+    const weekHTML = wk => {
+      const inM = wk.filter(Boolean); const a = inM[0], b = inM[inM.length - 1];
+      const segs = ll.filter(l => l.from <= b && l.to >= a).map(l => { const s0 = wk.findIndex(d => d && d >= l.from); let e0 = 6; while (!wk[e0] || wk[e0] > l.to) e0--; return { l, s0, e0 }; });
+      const lanes = []; segs.forEach(sg => { let k = 0; while (lanes[k] && lanes[k].some(o => !(sg.e0 < o.s0 || sg.s0 > o.e0))) k++; (lanes[k] = lanes[k] || []).push(sg); sg.lane = k; });
+      const hidden = Array(7).fill(0); segs.filter(sg => sg.lane >= PLANNER_LANES).forEach(sg => { for (let c = sg.s0; c <= sg.e0; c++) hidden[c]++; });
+      const rows = Math.min(lanes.length, PLANNER_LANES) + (hidden.some(Boolean) ? 1 : 0);
+      const days = wk.map((d, c) => d ? `<div class="lp-day ${!isWorkDay(d) ? 'we' : ''} ${holidayOf(d) ? 'hol' : ''} ${d === td ? 'td' : ''}" style="grid-column:${c + 1};grid-row:1 / span ${rows + 1}" ${(canManageLeave() || shown.has(S.me.id)) && d >= td ? `data-act="leaveAdd" data-s="${esc(S.me.id)}" data-d="${d}"` : ''} title="${fmtD(d)}${holidayOf(d) ? ' · ' + esc(holidayOf(d).name) : ''}">${+d.slice(8)}</div>` : `<div class="lp-day out" style="grid-column:${c + 1};grid-row:1 / span ${rows + 1}"></div>`).join('');
+      const bars = segs.filter(sg => sg.lane < PLANNER_LANES).map(sg => { const span = sg.e0 - sg.s0 + 1; const col = dutyColor(sg.l.staffId); const startsHere = sg.l.from >= wk[sg.s0]; const endsHere = sg.l.to <= wk[sg.e0];
+        return `<div class="lp-bar ${startsHere ? 's' : ''} ${endsHere ? 'e' : ''}" style="grid-column:${sg.s0 + 1} / span ${span};grid-row:${sg.lane + 2};background:${col}" data-act="leaveOpen" data-id="${esc(sg.l.id)}" title="${esc(nm(sg.l.staffId))}: ${esc(leaveText(sg.l))}${sg.l.note ? ' — ' + esc(sg.l.note) : ''}">${span >= 2 ? esc(first(sg.l.staffId)) : esc(first(sg.l.staffId).charAt(0))}</div>`; }).join('');
+      const more = hidden.map((h, c) => h ? `<div class="lp-more" style="grid-column:${c + 1};grid-row:${Math.min(lanes.length, PLANNER_LANES) + 2}" title="${h} more on leave — open the month view to see all">+${h}</div>` : '').join('');
+      return `<div class="lp-week">${days}${bars}${more}</div>`;
+    };
+    return `<div class="lp-month ${ym === td.slice(0, 7) ? 'cur' : ''}"><button type="button" class="lp-title" data-act="leaveMonth" data-ym="${ym}" title="Open ${MONTHS[i]} ${y} in the month view">${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i].toUpperCase()}</button>
+      <div class="lp-dow">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((x, k) => `<span class="${k >= 5 ? 'we' : ''}">${x}</span>`).join('')}</div>${weeks.map(weekHTML).join('')}</div>`;
+  };
+  const who = [...new Set(ll.map(l => l.staffId))];
+  return `<div class="card section"><div class="card-head"><h2>Year planner ${y}</h2><span class="small muted">Click a bar to open that leave, a day to add leave, or a month name for the month view.</span></div>
+    <div class="lp-grid">${[...Array(12)].map((_, i) => month(i)).join('')}</div>
+    <div class="row small" style="gap:12px;margin-top:10px">${who.length ? who.map(id => `<span style="display:inline-flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:3px;background:${dutyColor(id)}"></span>${esc(nm(id))}</span>`).join('') : `<span class="muted">No leave recorded for ${y}.</span>`}<span class="muted">Shaded days: Friday, Saturday and public holidays. Up to ${PLANNER_LANES} people are shown per day; “+n” means more people are away.</span></div></div>`;
 }
