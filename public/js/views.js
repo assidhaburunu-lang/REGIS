@@ -279,7 +279,7 @@ VIEWS.new = () => {
         </div>
       </fieldset>
       <fieldset><legend>Complaint</legend>
-        ${fld(t('summary'), txt('summary', '', { req: 'a summary', rows: 4, ph: 'Brief description of what happened, when and who was involved' }), { req: true, full: true, id: 'f_summary' })}
+        ${fld(t('summary'), txt('summary', '', { req: 'a summary', rows: 4, ph: 'Brief description of what happened, when and who was involved' }) + `<div class="row" style="margin-top:6px"><button type="button" class="btn sm primary" data-act="clsAIFromSummary">✦ ${S.sample && !S.sampleOff ? 'Suggest classification with AI' : 'Suggest classification'}</button><span class="muted small">Reads this summary and suggests the category, issue and affected groups from the HRCM catalogue.</span></div>`, { req: true, full: true, id: 'f_summary' })}
         ${fld('Date of incident', inp('incidentDate', '', { type: 'date' }), { id: 'f_incidentDate' })}
         ${fld(t('atoll'), sel('atoll', ATOLLS) + naBox('location'), { id: 'f_atoll' })}
         ${fld(t('island'), inp('island', '', { ph: 'e.g. Hulhumalé, Thinadhoo' }), { id: 'f_island' })}

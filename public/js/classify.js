@@ -43,7 +43,7 @@ function clsEditorHTML() {
   ${cat ? `<div class="note small" style="margin-top:10px"><b>${esc(cat.domain)}</b>${iss ? ` · ${esc(iss.i)} · Indicative frameworks: ${esc(iss.f || '—')}${iss.dv ? ` · <span class="thaana">${esc(iss.dv)}</span>` : ''}${iss.def ? `<br>HRCM definition: ${esc(iss.def)}` : ''}<br><span class="muted">${esc(iss.g || '')}</span>` : ''}</div>` : ''}
   <div class="row" style="margin-top:12px;align-items:flex-end">
     <div class="f" style="flex:1;min-width:220px"><label for="cls_q">Search the catalogue</label><input id="cls_q" type="search" placeholder="e.g. wages, passport, detention, school" data-on="input:clsSearch" autocomplete="off"></div>
-    ${S.sample && !S.sampleOff ? `<button type="button" class="btn primary" data-act="clsAI">✦ Suggest with AI</button>` : ''}
+    <button type="button" class="btn primary" data-act="clsAI" title="${S.sample && !S.sampleOff ? 'Claude reads the complaint summary and suggests the classification from the catalogue' : 'Matches the complaint summary against the catalogue keywords (AI is not connected here)'}">✦ ${S.sample && !S.sampleOff ? 'Suggest with AI' : 'Suggest classification'}</button>
   </div>
   <div id="clsResults"></div>
   <div id="clsAIBox">${clsAIHTML()}</div>
@@ -108,7 +108,7 @@ ${summary.slice(0, 5000)}
 ACT.clsAI = async () => {
   const summary = String(S.cls.getSummary() || '').trim();
   if (summary.length < 15) { toast('Write the complaint summary first, then ask for a suggestion.', 'error'); return; }
-  if (!S.sample) return;
+  if (!S.sample || S.sampleOff) { clsKeywordSuggest(summary); return; }
   clsAbort = new AbortController();
   S.cls.ai = { state: 'busy' }; $('#clsAIBox').innerHTML = clsAIHTML();
   try {
@@ -127,7 +127,7 @@ ACT.clsAI = async () => {
   } catch (e) {
     const code = e && e.code;
     if (code === 'cancelled') S.cls.ai = null;
-    else if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) { S.sampleOff = true; S.cls.ai = { state: 'error', msg: 'AI suggestions are not available for your account here. Classify using the catalogue search.' }; }
+    else if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) { S.sampleOff = true; clsKeywordSuggest(summary, 'AI suggestions are not available here, so these are keyword matches.'); return; }
     else S.cls.ai = { state: 'error', msg: code === 'rate_limited' ? 'Claude is busy or your usage limit was reached. Try again in a little while.' : code === 'refused' ? 'Claude could not classify this summary. Classify it manually.' : code === 'invalid_json' ? 'The suggestion could not be read. Try again, or classify manually.' : 'The suggestion could not be completed. Try again, or classify manually.' };
   }
   const box = $('#clsAIBox'); if (box) box.innerHTML = clsAIHTML();
@@ -140,14 +140,16 @@ function clsAIHTML() {
   const X = catIndex(); const r = a.res; const p = X.byIssue[r.primary.issueId];
   const tone = { high: 'ok', medium: 'warn', low: 'bad' }[r.primary.confidence];
   const line = (label, reason, btn) => `<li style="margin:4px 0"><b>${esc(label)}</b>${reason ? ` <span class="muted">— ${esc(reason)}</span>` : ''} ${btn}</li>`;
-  return `<div class="entry" style="margin-top:10px;border-color:#0ea5e9;box-shadow:none"><div class="meta"><span><b>✦ AI suggestion</b> ${pill(r.primary.confidence + ' confidence', tone)}</span><span><button type="button" class="btn sm primary" data-act="clsApplyAll">Apply all</button> <button type="button" class="btn sm" data-act="clsAIDismiss">Dismiss</button></span></div>
+  const kw = a.source === 'keywords';
+  return `<div class="entry" style="margin-top:10px;border-color:#0ea5e9;box-shadow:none"><div class="meta"><span><b>✦ ${kw ? 'Suggested from catalogue keywords' : 'AI suggestion'}</b> ${pill(r.primary.confidence + ' confidence', tone)}</span><span><button type="button" class="btn sm primary" data-act="clsApplyAll">Apply all</button> <button type="button" class="btn sm" data-act="clsAIDismiss">Dismiss</button></span></div>
     <ul class="small" style="margin:6px 0;padding-inline-start:18px">
       ${line(`Main issue: ${p.cn} › ${p.in}`, r.primary.reason, `<button type="button" class="btn link small" data-act="clsSetPrimary" data-id="${esc(p.i)}">Use</button>`)}
       ${r.secondary.map(s => line(`Other issue: ${X.byIssue[s.issueId].in}`, s.reason, `<button type="button" class="btn link small" data-act="clsAddSec" data-id="${esc(s.issueId)}">Add</button>`)).join('')}
       ${r.groups.map(g => line(`Group: ${X.groupBy[g.id].g} › ${X.groupBy[g.id].p}`, g.reason, `<button type="button" class="btn link small" data-act="clsAddGroup" data-id="${esc(g.id)}">Add</button>`)).join('')}
       ${r.topics.map(t => line(`Topic: ${X.topicBy[t.id].t}`, t.reason, `<button type="button" class="btn link small" data-act="clsAddTopic" data-id="${esc(t.id)}">Add</button>`)).join('')}
     </ul>${r.note ? `<div class="small"><b>Check:</b> ${esc(r.note)}</div>` : ''}
-    <div class="small muted" style="margin-top:6px">Suggested by Claude from the complaint summary only, using your Claude account. Review before saving; the officer's judgement decides.</div></div>`;
+    ${kw ? `<div class="small muted" style="margin-top:6px">${a.msg ? esc(a.msg) + ' ' : ''}Matched words in the summary against the catalogue's keywords. This is less reliable than AI, especially for summaries written in Dhivehi. Review before saving; the officer's judgement decides.${can('admin') && window.FREMYS_CLOUD ? ' Administrator: add ANTHROPIC_API_KEY in Vercel (Settings → Environment Variables) and redeploy to turn on AI suggestions.' : ''}</div>`
+      : `<div class="small muted" style="margin-top:6px">Suggested by Claude from the complaint summary only. Review before saving; the officer's judgement decides.</div>`}</div>`;
 }
 ACT.clsAddTopic = el => { const d = S.cls.draft; if (!(d.topics || []).includes(el.dataset.id)) d.topics = [...(d.topics || []), el.dataset.id]; clsRefresh(); };
 ACT.clsAIDismiss = () => { S.cls.ai = null; $('#clsAIBox').innerHTML = ''; };
@@ -155,7 +157,7 @@ ACT.clsApplyAll = () => {
   const r = S.cls.ai.res; const d = S.cls.draft; setPrimary(r.primary.issueId);
   d.secondary = [...new Set([...(d.secondary || []), ...r.secondary.map(s => s.issueId)])].filter(x => x !== d.issueId);
   d.groups = [...new Set([...(d.groups || []), ...r.groups.map(g => g.id)])]; d.topics = [...new Set([...(d.topics || []), ...r.topics.map(t => t.id)])];
-  d.source = 'ai-assisted'; d.aiNote = `${r.primary.confidence} confidence: ${r.primary.reason}`; clsRefresh();
+  d.source = S.cls.ai.source === 'keywords' ? 'keyword-assisted' : 'ai-assisted'; d.aiNote = `${r.primary.confidence} confidence: ${r.primary.reason}`; clsRefresh();
 };
 
 /* ---------- Classification card and dialog on the complaint page ---------- */
@@ -223,3 +225,63 @@ ACT.catUpload = async () => {
   } catch (e) { toast(errText(e), 'error'); }
 };
 ACT.catRestore = () => confirmBox('Restore the bundled catalogue?', 'Go back to the catalogue that came with FREMYS (from HRCM_Human_Rights_Classification_Reference_Catalogue.xlsx).', 'Restore', async () => { await delDoc('config/catalogue'); logA('catalogue.restore', null, ''); });
+
+
+// Everyday words people use in complaints, per catalogue issue (adds to the catalogue's own words).
+const CLS_HINTS = {
+  SI001: 'killed shot died death', SI002: 'killed shot police killing', SI003: 'died custody death detention cell medication heart', SI004: 'missing disappeared whereabouts abducted taken',
+  SI005: 'threat life protect danger killed', SI006: 'death investigation inquiry suspicious died', SI007: 'arrested arrest night warrant reason detained held police station custody',
+  SI008: 'imprisoned jail sentence prison released', SI009: 'pretrial remand trial postponed months awaiting trial detention', SI010: 'travel ban movement restricted island leave', SI011: 'held locked confined detained',
+  SI012: 'court case file justice offices sent between', SI013: 'lawyer legal counsel representation private meet', SI014: 'delay delayed postponed years pending court', SI015: 'presumed guilty media named',
+  SI016: 'unfair trial judge hearing', SI017: 'appeal', SI018: 'judge independence', SI019: 'remedy compensation ignored',
+  SI020: 'speech criticising criticism opinion warned post', SI021: 'censored blocked removed', SI022: 'press media newspaper', SI023: 'journalist threats threatened article published reporter',
+  SI024: 'information request documents refused records', SI025: 'online social media post facebook twitter', SI026: 'summoned warned harassed opinion post criticising',
+  SI027: 'protest gathering assembly peaceful', SI028: 'dispersed dispersal protest gathering pepper spray', SI029: 'protesters force tear gas batons pepper spray', SI030: 'association ngo registration',
+  SI031: 'union', SI032: 'ngo civil society activists', SI033: 'vote election candidate political', SI034: 'surveillance monitored phone tapped cctv', SI035: 'search seized raid house searched',
+  SI036: 'shared disclosed personal details group published', SI037: 'children see access visit father mother family', SI038: 'separated children taken custody family', SI039: 'confidential confidentiality disclosed hiv status',
+  SI040: 'letters correspondence mail', SI041: 'torture tortured', SI042: 'degrading humiliating inhuman', SI043: 'beaten beat hit slapped kicked assaulted bruises punched',
+  SI044: 'threatened humiliated insulted segregation isolation psychological', SI045: 'punishment beaten punished', SI046: 'sexual custody officer assault', SI047: 'force pepper spray excessive restrained',
+  SI048: 'cell toilet drinking water overcrowded capacity fan ventilation detainees conditions prison custody shower privacy', SI049: 'woman women gender female pregnant', SI050: 'disability wheelchair blind visual ramp autism', SI051: 'age old elderly',
+  SI052: 'nationality foreigner bangladeshi indian migrant sponsor', SI053: 'race ethnic', SI054: 'poor poverty status', SI055: 'unequal treatment law', SI056: 'intersectional',
+  SI057: 'school admission refused enrol enrolment not sent school', SI058: 'school discrimination', SI059: 'opportunities', SI060: 'bullied bullying school students harassed', SI061: 'teacher hit students ruler punishment',
+  SI062: 'school teacher sexual harassment', SI063: 'school teacher facilities science classroom', SI064: 'inclusive autism special needs support staff', SI065: 'doctor treatment refused insulin medical specialist referral',
+  SI066: 'health centre refused migrant deposit discrimination', SI067: 'misdiagnosis negligence surgery hospital harm', SI068: 'medicine medication', SI069: 'pregnant maternal birth pregnancy',
+  SI070: 'psychiatric mental condition', SI071: 'emergency evacuation ambulance', SI072: 'hiv disclosed confidentiality consent health worker', SI073: 'evicted eviction notice belongings removed demolished',
+  SI074: 'homeless street', SI075: 'mould leaking ceiling flat damp', SI076: 'housing application waiting list rejected', SI077: 'tenancy lease agreement', SI078: 'overcrowded members room crowded',
+  SI079: 'water sanitation toilet', SI080: 'relocated relocation resettlement erosion replacement housing', SI081: 'dismissed fired terminated job dismissal', SI082: 'wages salary unpaid paid pay months',
+  SI083: 'forced work not allowed leave house', SI084: 'child working boy year old vessel labour', SI085: 'pregnant dismissed discrimination workplace', SI086: 'unsafe safety injury', SI087: 'harassment supervisor sexual exploitation',
+  SI088: 'union', SI089: 'hours overtime shifts week day off', SI090: 'passport keeping kept documents employer', SI091: 'change jobs employer transfer',
+  SI092: 'food hunger', SI093: 'drinking water desalination bottled supply', SI094: 'sanitation sewage', SI095: 'malnutrition', SI096: 'assistance welfare', SI097: 'living conditions',
+  SI098: 'services counter office', SI099: 'allowance benefit stopped assistance', SI100: 'excluded welfare', SI101: 'assistance refused discrimination', SI102: 'pension retired',
+  SI103: 'disability allowance support', SI104: 'unemployed', SI105: 'single mother family assistance', SI106: 'cultural', SI107: 'cultural identity', SI108: 'language dhivehi',
+  SI109: 'heritage', SI110: 'cultural activities', SI111: 'minority', SI112: 'smoke burning pollution breathing waste', SI113: 'polluted water', SI114: 'reef fishing livelihood dredging',
+  SI115: 'chemicals hazardous', SI116: 'environmental information', SI117: 'erosion flooding hazards', SI118: 'displaced erosion disaster flood',
+};
+
+/* Suggestion without AI: words in the summary are weighted by how rare they are across the catalogue (TF-IDF),
+   using the catalogue's own words plus the everyday complaint words above. English summaries only. */
+const CLS_STOP = new Set('the and for with from that this other right rights person persons without access issue issues general into have has had been being they their them his her him she was were are not who which when where after before about says said reports report alleges alleged complains complaint asks requests also than then over under more most some such only very can could would should will may might its our your one two three four five six seven eight nine ten due lack'.split(' '));
+const clsStem = w => w.replace(/(ations|ation|ings|ing|ies|ied|es|ed|en|s)$/, '').replace(/(.)\1$/, '$1');
+const clsToks = t => String(t || '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 2 && !CLS_STOP.has(w)).map(clsStem);
+let clsKwIndex = null;
+function clsKw() {
+  const C = catalogue(); if (clsKwIndex && clsKwIndex.C === C) return clsKwIndex;
+  const docs = C.issues.map(x => ({ x, own: new Set(clsToks(`${x.in} ${x.sn} ${x.k}`)), hint: new Set(clsToks(CLS_HINTS[x.i] || '')) }));
+  const df = {}; docs.forEach(d => new Set([...d.own, ...d.hint]).forEach(w => { df[w] = (df[w] || 0) + 1; }));
+  const gdocs = C.groups.map(g => ({ g, own: new Set(clsToks(`${g.p} ${g.k}`)) })); const gdf = {}; gdocs.forEach(d => d.own.forEach(w => { gdf[w] = (gdf[w] || 0) + 1; }));
+  return (clsKwIndex = { C, docs, idf: w => Math.log(1 + docs.length / (df[w] || docs.length)), gdocs, gidf: w => Math.log(1 + gdocs.length / (gdf[w] || gdocs.length)) });
+}
+function clsKeywordSuggest(summary, msg) {
+  const K = clsKw(); const ws = new Set(clsToks(summary)); const orig = {}; String(summary).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').split(' ').forEach(w => { const st = clsStem(w); if (!orig[st]) orig[st] = w; }); const show = () => { const box = $('#clsAIBox'); if (box) { box.innerHTML = clsAIHTML(); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+  const ranked = K.docs.map(d => { let s = 0; const hits = []; ws.forEach(w => { if (d.own.has(w)) { s += K.idf(w); hits.push(w); } else if (d.hint.has(w)) { s += K.idf(w) * 1.2; hits.push(w); } }); return { x: d.x, s, hits }; }).filter(r => r.s > 0).sort((a, b) => b.s - a.s);
+  if (!ranked.length) { S.cls.ai = { state: 'error', msg: (msg ? msg + ' ' : '') + (/[ހ-޿]/.test(summary) ? 'No match found. Keyword matching works on English words only, so a Dhivehi summary needs AI suggestions or the catalogue search above.' : 'No catalogue words were found in the summary. Use the catalogue search above, or add more detail to the summary.') }; show(); return; }
+  const top = ranked[0]; const second = ranked[1] ? ranked[1].s : 0;
+  const confidence = top.s >= 4 && top.s >= second * 1.6 ? 'high' : top.s > second * 1.2 ? 'medium' : 'low';
+  const why = r => `Matched words: ${r.hits.slice(0, 5).map(h => orig[h] || h).join(', ')}`;
+  const groups = K.gdocs.map(d => { let s = 0; const hits = []; ws.forEach(w => { if (d.own.has(w)) { s += K.gidf(w); hits.push(w); } }); return { g: d.g, s, hits }; }).filter(r => r.s >= 4 || r.hits.length >= 2).sort((a, b) => b.s - a.s).slice(0, 3).map(r => ({ id: r.g.id, reason: why(r) }));
+  const res = { primary: { issueId: top.x.i, confidence, reason: why(top) }, secondary: ranked.slice(1).filter(r => r.s >= top.s * 0.5).slice(0, 3).map(r => ({ issueId: r.x.i, reason: why(r) })), groups, topics: [],
+    note: confidence === 'low' ? 'Several issues match about equally; check the main issue against the facts.' : '' };
+  S.cls.ai = { state: 'done', res, source: 'keywords', msg: msg || '' };
+  logA('classification.keyword_suggest', S.cls.cid || null, `${res.primary.issueId} (${confidence})`); show();
+}
+ACT.clsAIFromSummary = async () => { await ACT.clsAI(); const box = $('#clsAIBox'); if (box) box.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
