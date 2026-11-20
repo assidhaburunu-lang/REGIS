@@ -404,3 +404,11 @@ details.catref[open] > summary { border-bottom: 1px solid #e2e8f0; }
 .logout-btn:hover { background: #7f1d1d; border-color: #b91c1c; color: #fff; }
 .logout-btn:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
 @media (max-width: 760px) { .logout-btn span { display: none; } .logout-btn { padding: 6px 8px; } }
+
+/* Complaint summary reads larger than the surrounding details */
+.kv dd.cd-summary { white-space: pre-wrap; font-size: 16.5px; line-height: 1.65; font-weight: 500; color: var(--ink, inherit); }
+/* Dhivehi (right-to-left) layout: English values such as dates ("20 Nov 2026"), names and sentences keep their own
+   left-to-right order instead of being reshuffled ("Nov 2026 20", ".restored"), while staying right-aligned. */
+html[dir="rtl"] :is(dd, td, th, li, .tile .s, .pill, .who-btn .roles) { unicode-bidi: plaintext; }
+html[dir="rtl"] :is(dd, td, th) { text-align: right; }
+html[dir="rtl"] :is(td, th).r { text-align: left; }

@@ -62,7 +62,7 @@ function dutyWeekHTML(anchor) {
   return `<div class="duty-week">
     <div class="dw-hours"><div class="dw-h0"></div>${hours.slice(0, 16).map(h => `<div class="dw-h">${pad2(h)}:00</div>`).join('')}</div>
     ${days.map(d => { const day = dutyDay(d); const [a, , len] = dutyHours(d, day); const top = (parseInt(a) - 8) / 16 * 100; const col = day ? dutyColor(day.officer) : null; const calls = dutyCalls(day);
-      return `<div class="dw-col ${d === today() ? 'today' : ''}"><div class="dw-day">${WD[dow(d)]}<br><b>${fmtD(d).slice(0, 6)}</b></div><div class="dw-body" data-act="dutyDayOpen" data-d="${d}">
+      return `<div class="dw-col ${d === today() ? 'today' : ''}"><div class="dw-day">${WD[dow(d)]}<br><b>${ltrIso(stripBidi(fmtD(d)).slice(0, 6))}</b></div><div class="dw-body" data-act="dutyDayOpen" data-d="${d}">
         ${day ? `<div class="dw-block" style="top:${top}%;height:${len / 16 * 100}%;background:${col}"><b>${esc(nm(day.officer))}</b><span>${dutyHours(d, day).slice(0, 2).join('–')}</span>${d <= today() ? `<span>${vals(day.logs).length ? calls + ' calls' : 'Not logged'}</span>` : ''}${day.holiday ? '<span>Public holiday</span>' : ''}</div>` : `<div class="dw-empty" style="top:${top}%;height:${len / 16 * 100}%">${canSchedule() ? '+ Assign' : 'Unassigned'}</div>`}
       </div></div>`; }).join('')}
   </div>`;

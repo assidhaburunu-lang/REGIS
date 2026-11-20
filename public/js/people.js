@@ -235,6 +235,7 @@ ACT.exportSqlite = async el => {
 const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
 function makeZip(files) {
+  files = files.map(f => /\.(xml|rels)$/.test(f.name) && f.data instanceof Uint8Array ? { ...f, data: new TextEncoder().encode(stripBidi(new TextDecoder().decode(f.data))) } : f);
   const enc = new TextEncoder(); const d = new Date(); const dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF; const dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
   const parts = []; const central = []; let off = 0;
   for (const f of files) {

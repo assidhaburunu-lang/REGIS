@@ -48,7 +48,7 @@ CASE_TAB_VIEWS.overview = (c, rd) => {
   const miss = (c.missing || []).map(k => NA_FIELDS[k] || k);
   return `<div class="ov-grid">
     <div class="card ov-wide"><div class="card-head"><h2>Complaint details</h2>${(can('editCore') || can('register') || isAssignedOfficer(c)) && !isDone(c) ? `<button class="btn sm" data-act="editDetention" data-id="${esc(c.id)}">${detOf(c) ? 'Edit detention setting' : 'Add detention setting'}</button>` : ''}</div><dl class="kv">
-      <dt>${esc(t('summary'))}</dt><dd style="white-space:pre-wrap">${esc(c.summary)}</dd>
+      <dt>${esc(t('summary'))}</dt><dd class="cd-summary" dir="auto">${esc(c.summary)}</dd>
       <dt>Date of incident</dt><dd>${fmtD(c.incidentDate)}</dd>
       <dt>Location</dt><dd>${esc([c.island, ATOLL[c.atoll]].filter(Boolean).join(', ') || '—')}</dd>
       <dt>${esc(t('respondent'))}</dt><dd>${esc(c.respondent?.name || '—')}${c.respondent?.type ? ` <span class="muted small">(${esc(c.respondent.type)})</span>` : ''}</dd>

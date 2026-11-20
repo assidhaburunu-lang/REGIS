@@ -159,8 +159,14 @@ function workDays(a, b) {
   return w;
 }
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-function fmtD(iso) { if (!iso) return '—'; const s = String(iso); const [y, m, d] = s.slice(0, 10).split('-'); if (!d) return esc(s); return `${d} ${MONTHS[+m - 1]} ${y}`; }
-function fmtDT(iso) { if (!iso) return '—'; const d = new Date(iso); if (isNaN(d)) return esc(iso); return `${pad2(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+// In the Dhivehi (right-to-left) layout a date such as "20 Nov 2026" is wrapped in invisible Unicode isolate marks so it
+// keeps its left-to-right order ("Nov 2026 20" otherwise). The marks are removed again from Excel, PDF and Word output.
+const ltrIso = s => S.lang === 'dv' ? '\u2066' + s + '\u2069' : s;
+const stripBidi = s => typeof s === 'string' ? s.replace(/[\u2066-\u2069]/g, '') : Array.isArray(s) ? s.map(stripBidi) : s;
+function fmtD(iso) { if (!iso) return '—'; const s = String(iso); const [y, m, d] = s.slice(0, 10).split('-'); if (!d) return esc(s); return ltrIso(`${d} ${MONTHS[+m - 1]} ${y}`); }
+function fmtDT(iso) { if (!iso) return '—'; const d = new Date(iso); if (isNaN(d)) return esc(iso); return ltrIso(`${pad2(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`); }
+function patchPdfLib() { const j = window.jspdf; if (!j || j._fremysBidi) return; const API = j.jsPDF.API; for (const f of ['text', 'splitTextToSize', 'getTextWidth']) { const o = API[f]; if (o) API[f] = function (t, ...a) { return o.call(this, stripBidi(t), ...a); }; } j._fremysBidi = true; }
+window.addEventListener('load', patchPdfLib);
 const vals = o => Object.values(o || {});
 const entries = o => Object.entries(o || {}).map(([id, v]) => ({ id, ...v }));
 const byAt = (a, b) => String(b.at || '').localeCompare(String(a.at || ''));
@@ -355,12 +361,12 @@ function exportCSV(filename, rows) { saveFile(filename, toCSV(rows)); }
 function exportXLSX(filename, sheets) {
   if (!window.XLSX) { toast('The Excel library did not load. Use CSV instead.', 'error'); return; }
   const wb = XLSX.utils.book_new();
-  sheets.forEach(s => { const ws = XLSX.utils.aoa_to_sheet(s.rows); ws['!cols'] = (s.rows[0] || []).map((_, i) => ({ wch: Math.min(60, Math.max(10, ...s.rows.slice(0, 200).map(r => String(r[i] ?? '').length))) })); XLSX.utils.book_append_sheet(wb, ws, s.name.replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31)); });
+  sheets.forEach(s => { const ws = XLSX.utils.aoa_to_sheet(s.rows.map(r => r.map(stripBidi))); ws['!cols'] = (s.rows[0] || []).map((_, i) => ({ wch: Math.min(60, Math.max(10, ...s.rows.slice(0, 200).map(r => String(r[i] ?? '').length))) })); XLSX.utils.book_append_sheet(wb, ws, s.name.replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31)); });
   saveFile(filename, XLSX.write(wb, { bookType: 'xlsx', type: 'array' }));
 }
 function pdfDoc(title, subtitle, landscape = false) {
   if (!window.jspdf) { toast('The PDF library did not load.', 'error'); return null; }
-  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: landscape ? 'landscape' : 'portrait' });
+  patchPdfLib(); const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: landscape ? 'landscape' : 'portrait' });
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text(title, 40, 48);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90);
   doc.text(subtitle || '', 40, 64); doc.text(`FREMYS — Complaint Registration Application · Generated ${fmtDT(nowISO())} by ${S.me.name || 'staff'}`, 40, 78);

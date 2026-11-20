@@ -55,7 +55,7 @@ VIEWS.assignation = () => {
   </div>
 
   <div class="card section"><div class="card-head"><h2>Due dates in the next 10 working days</h2><span class="muted small">Number of case actions and interim letters due per officer per day</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Officer</th><th class="r">Overdue</th>${days.map(d => `<th class="r" style="white-space:nowrap">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wday(d)]}<br>${fmtD(d).slice(0, 6)}</th>`).join('')}<th class="r">No date</th></tr></thead><tbody>
+    <div class="tbl-wrap"><table><thead><tr><th>Officer</th><th class="r">Overdue</th>${days.map(d => `<th class="r" style="white-space:nowrap">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wday(d)]}<br>${ltrIso(stripBidi(fmtD(d)).slice(0, 6))}</th>`).join('')}<th class="r">No date</th></tr></thead><tbody>
       ${offs.map(o => `<tr><td style="white-space:nowrap"><a href="#user-${esc(o.id)}">${esc(nm(o.id))}</a></td><td class="r" style="${o.overdue.length ? 'color:#b91c1c;font-weight:700' : ''}">${o.overdue.length || ''}</td>${days.map(d => dueCell(o, d)).join('')}<td class="r muted">${o.items.filter(x => !x.due).length || ''}</td></tr>`).join('')}
     </tbody></table></div></div>
 

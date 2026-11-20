@@ -70,7 +70,7 @@ ACT.interimLetter = el => {
 ACT.copyLetter = async () => { try { await navigator.clipboard.writeText($('#letterText').value); toast('Letter copied'); } catch (e) { toast('Copy was blocked; select the text instead.', 'error'); } };
 ACT.letterPdf = el => {
   const c = S.complaints[el.dataset.id]; if (!window.jspdf) { toast('The PDF library did not load.', 'error'); return; }
-  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' }); const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  patchPdfLib(); const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' }); const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text('Human Rights Commission of the Maldives', W / 2, 56, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90); doc.text('Registration Department', W / 2, 71, { align: 'center' }); doc.setTextColor(20);
   doc.setDrawColor(150); doc.line(56, 82, W - 56, 82); doc.setFontSize(10.5);
