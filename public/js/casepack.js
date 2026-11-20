@@ -97,7 +97,7 @@ ACT.packDocx = async el => {
   const P = packData(el.dataset.id, S.packLang || 'dv'); const L = P.L; const rtl = L.dir === 'rtl';
   const x = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const isTh = s => /[ހ-޿]/.test(s);
-  const run = (text, o = {}) => `<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Faruma"/>${o.b ? '<w:b/><w:bCs/>' : ''}${o.u ? '<w:u w:val="single"/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${isTh(text) ? '<w:rtl/>' : ''}<w:sz w:val="${o.sz || 24}"/><w:szCs w:val="${o.sz || 24}"/></w:rPr><w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
+  const run = (text, o = {}) => `<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Faruma"/>${o.b ? '<w:b/><w:bCs/>' : ''}${o.u ? '<w:u w:val="single"/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${isTh(text) ? '<w:rtl/>' : ''}<w:sz w:val="${o.sz || 24}"/><w:szCs w:val="${Math.max(o.sz || 24, 24)}"/></w:rPr><w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
   const para = (text, o = {}) => { const th = o.dirOf != null ? isTh(o.dirOf) : isTh(text) || (rtl && !/[A-Za-z]/.test(text)); return `<w:p><w:pPr>${th ? '<w:bidi/>' : '<w:bidi w:val="0"/>'}<w:spacing w:before="0" w:after="${o.after ?? 40}" w:line="${o.line || 276}" w:lineRule="auto"/><w:jc w:val="${o.jc || (th ? 'right' : 'left')}"/></w:pPr>${run(text, o)}</w:p>`; };
   const paras = (arr, o) => arr.flatMap(t => String(t).split('\n')).map(t => para(t, o)).join('');
   const W = [3300, 7700]; const ALL = W[0] + W[1];

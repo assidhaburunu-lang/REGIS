@@ -43,7 +43,8 @@ function stageLabelIn(k, lang) { const s = STAGE[k]; return s ? (lang === 'dv' ?
 // One report row, as plain text pieces used by the screen, Word and PDF.
 function briefRow(c, L, lang) {
   const show = !c.confidential || canSeeRestricted(c); const cp = cpOf(c);
-  const place = p => [p.atoll, p.island].filter(Boolean).join('. ');
+  const DV_ATOLL = { HA: 'ހއ', HDh: 'ހދ', Sh: 'ށ', N: 'ނ', R: 'ރ', B: 'ބ', Lh: 'ޅ', K: 'ކ', AA: 'އއ', ADh: 'އދ', V: 'ވ', M: 'މ', F: 'ފ', Dh: 'ދ', Th: 'ތ', L: 'ލ', GA: 'ގއ', GDh: 'ގދ', Gn: 'ޏ', S: 'ސ' };
+  const place = p => lang === 'dv' && /[\u0780-\u07BF]/.test(p.island || '') ? (p.atoll === 'MLE' || !p.atoll ? p.island || '' : `${DV_ATOLL[p.atoll] || p.atoll}. ${p.island}`) : [p.atoll, p.island].filter(Boolean).join('. ');
   const complainant = show ? [cp.name || L.none, place(cp)].filter(Boolean) : [L.conf];
   const vs = victimsOf(c);
   const victim = !show ? [L.conf] : vs.length ? vs.map(v => v.name + (place(v) ? ', ' + place(v) : '')) : [c.victimSame ? L.same : L.none];
@@ -111,7 +112,7 @@ ACT.briefDocx = async () => {
   const { r, L, rows } = briefData(); const rtl = r.lang === 'dv';
   const x = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const isThaana = s => /[ހ-޿]/.test(s);
-  const run = (text, o = {}) => String(text ?? '').split('\n').map((line, i) => `<w:r><w:rPr><w:rFonts w:ascii="${o.latin || 'Times New Roman'}" w:hAnsi="${o.latin || 'Times New Roman'}" w:cs="Faruma"/>${o.b ? '<w:b/><w:bCs/>' : ''}${o.u ? '<w:u w:val="single"/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${isThaana(line) ? '<w:rtl/>' : ''}<w:sz w:val="${o.sz || 22}"/><w:szCs w:val="${o.sz || 22}"/></w:rPr>${i ? '<w:br/>' : ''}<w:t xml:space="preserve">${x(line)}</w:t></w:r>`).join('');
+  const run = (text, o = {}) => String(text ?? '').split('\n').map((line, i) => `<w:r><w:rPr><w:rFonts w:ascii="${o.latin || 'Times New Roman'}" w:hAnsi="${o.latin || 'Times New Roman'}" w:cs="Faruma"/>${o.b ? '<w:b/><w:bCs/>' : ''}${o.u ? '<w:u w:val="single"/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${isThaana(line) ? '<w:rtl/>' : ''}<w:sz w:val="${o.sz || 22}"/><w:szCs w:val="${Math.max(o.sz || 22, 24)}"/></w:rPr>${i ? '<w:br/>' : ''}<w:t xml:space="preserve">${x(line)}</w:t></w:r>`).join('');
   // Paragraph direction follows its own text (Dhivehi right-to-left, English left-to-right), like dir="auto" on screen.
   const para = (inner, o = {}) => { const th = o.text != null ? isThaana(o.text) : rtl; return `<w:p><w:pPr>${th ? '<w:bidi/>' : '<w:bidi w:val="0"/>'}<w:spacing w:before="${o.before || 0}" w:after="${o.after ?? 40}"/><w:jc w:val="${o.jc || (th ? 'right' : 'left')}"/></w:pPr>${inner}</w:p>`; };
   const tp = (text, ro = {}, po = {}) => String(text ?? '').split('\n').map(line => para(run(line, ro), { ...po, text: line })).join('');
