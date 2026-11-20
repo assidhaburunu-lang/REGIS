@@ -58,7 +58,7 @@ const DEMO_SCEN = [
   ['SI003', ['SI065'], 'Family requests an inquiry into the death of their father in custody, saying he had asked for his heart medication.', 'A police custodial facility', 'Government institution', ['VG06-06'], ['CT08'], { rel: 'father', kind: 'other' }, false, ['mps_male', 'mps_dhoonidhoo'], ['health']],
   ['SI048', ['SI046'], 'Female detainee says the women\'s section has no female officer on night shift and there is no privacy when showering.', 'A prison', 'Government institution', ['VG06-04'], ['CT02', 'CT08'], null, false, ['mcs_maafushi'], ['conditions', 'safety']]
 ];
-const DEMO_MALE = ['Mohamed Rasheed', 'Ahmed Shareef', 'Ibrahim Naseem', 'Hussain Afeef', 'Ali Waheed', 'Abdulla Faisal', 'Hassan Zahir', 'Ismail Shiham', 'Moosa Nizar', 'Yoosuf Riyaz', 'Adam Shafeeu', 'Ibrahim Faisal', 'Mohamed Ziyad', 'Ahmed Nashid', 'Hussain Rasheed', 'Ali Shareef', 'Abdul Latheef', 'Hassan Mausoom', 'Mohamed Ihsan', 'Ahmed Rilwan'];
+const DEMO_MALE = ['Mohamed Rasheed', 'Ahmed Shareef', 'Ibrahim Naseem', 'Hussain Afeef', 'Ali Waheed', 'Abdulla Faisal', 'Hassan Zahir', 'Ismail Shiham', 'Moosa Nizar', 'Yoosuf Riyaz', 'Adam Shafeeu', 'Ibrahim Faisal', 'Mohamed Ziyad', 'Ahmed Nashid', 'Hussain Rasheed', 'Ali Shareef', 'Abdul Latheef', 'Hassan Mausoom', 'Mohamed Ihsan', 'Ahmed Rizwan'];
 const DEMO_FEMALE = ['Aishath Shifa', 'Fathimath Nuha', 'Mariyam Zeena', 'Hawwa Lubna', 'Aminath Rifa', 'Khadeeja Ahmed', 'Aishath Shaheema', 'Fathimath Shiuna', 'Mariyam Visam', 'Hawwa Nazima', 'Aminath Shiyama', 'Zulaikha Moosa', 'Shaufa Ibrahim', 'Raheema Ali', 'Nashida Hassan', 'Fathimath Raufa', 'Aishath Nisha', 'Mariyam Saleem', 'Hafsa Rasheed', 'Asma Adam'];
 const DEMO_MIGRANT = [['Mohammad Rafiqul Islam', 'Bangladeshi', 'BD'], ['Md. Shahidul Alam', 'Bangladeshi', 'BD'], ['Ramesh Kumar', 'Indian', 'IN'], ['Suresh Babu', 'Indian', 'IN'], ['Bikash Tamang', 'Nepali', 'NP'], ['Nuwan Perera', 'Sri Lankan', 'LK'], ['Abdul Karim', 'Bangladeshi', 'BD'], ['Ganesh Rai', 'Nepali', 'NP'], ['Mohammed Rubel', 'Bangladeshi', 'BD'], ['Josephine Reyes', 'Filipino', 'PH']];
 const DEMO_PLACES = [['MLE', 'Malé'], ['MLE', 'Hulhumalé'], ['MLE', 'Vilimalé'], ['K', 'Maafushi'], ['K', 'Thulusdhoo'], ['S', 'Hithadhoo'], ['S', 'Feydhoo'], ['GDh', 'Thinadhoo'], ['Gn', 'Fuvahmulah'], ['HDh', 'Kulhudhuffushi'], ['L', 'Fonadhoo'], ['Lh', 'Naifaru'], ['R', 'Ungoofaaru'], ['B', 'Eydhafushi'], ['N', 'Velidhoo'], ['AA', 'Rasdhoo'], ['Th', 'Veymandoo'], ['Dh', 'Kudahuvadhoo'], ['GA', 'Villingili'], ['HA', 'Dhidhdhoo'], ['F', 'Nilandhoo'], ['Sh', 'Funadhoo'], ['ADh', 'Mahibadhoo'], ['M', 'Muli']];
@@ -232,15 +232,19 @@ function buildDemo(N = 100) {
 }
 function hasRoleOf(id, r) { return (S.staff[id]?.roles || []).includes(r); }
 
-ACT.loadDemo = () => confirmBox('Load 100 demo cases', 'Create 100 fictional, classified complaints over the last 12 months with their complainants, victims, panel meetings, decisions, information requests and referrals. All are marked DEMO and can be deleted in one step. This takes about a minute.', 'Load demo data', async () => { closeModal(); await loadDemo(); return false; });
-async function loadDemo() {
+ACT.loadDemo = () => modal({ title: 'Load 100 demo cases', body: `<p style="margin-top:0">Create 100 fictional, classified complaints over the last 12 months with their complainants, victims, panel meetings, decisions, information requests, referrals and the 1424 duty rota. All are marked DEMO and can be deleted in one step. This takes about a minute.</p>
+  <div class="form"><div class="f full"><label>Language of the demo content</label>
+    <label class="na"><input type="radio" name="lang" value="en" checked> English</label>
+    <label class="na"><input type="radio" name="lang" value="dv"> ދިވެހި (Dhivehi): Maldivian names, islands, complaint summaries, respondents, officer notes, panel reasons and recommendations in Dhivehi</label></div></div>`,
+  submit: 'Load demo data', onSubmit: async o => { setTimeout(() => loadDemo(o.lang === 'dv' ? 'dv' : 'en'), 0); } });
+async function loadDemo(lang = 'en') {
   if (vals(S.complaints).some(c => c.demo)) { toast('Demo data is already loaded. Delete it first to load a fresh set.', 'error'); return; }
-  const data = buildDemo(100);
+  let data = buildDemo(100); if (lang === 'dv') data = dvifyDemo(data);
   const jobs = [...Object.entries(data.complainants).map(([id, d]) => ['complainants/' + id, d]), ...Object.entries(data.victims).map(([id, d]) => ['victims/' + id, d]), ...data.meetings.map(([id, d]) => ['meetings/' + id, d]), ...data.complaints.map(([id, d]) => ['complaints/' + id, d]), ...data.recs.map(([id, d]) => ['recs/' + id, d]), ...data.duty.filter(([id]) => !(S.duty || {})[id]).map(([id, d]) => ['duty/' + id, d])];
   const note = document.createElement('div'); note.className = 'toast'; $('#toasts').appendChild(note);
   try {
     let n = 0; for (const [p, d] of jobs) { await demoWrite(p, d); n++; if (n % 5 === 0 || n === jobs.length) note.textContent = `Loading demo data… ${n} of ${jobs.length} records`; }
-    logA('demo.load', null, `${data.complaints.length} complaints`); toast(`Loaded ${data.complaints.length} demo complaints`);
+    logA('demo.load', null, `${data.complaints.length} complaints${lang === 'dv' ? ' (Dhivehi)' : ''}`); toast(`Loaded ${data.complaints.length} demo complaints${lang === 'dv' ? ' in Dhivehi' : ''}`);
   } catch (e) { toast('Demo loading stopped: ' + errText(e) + ' Delete the partial demo data and try again.', 'error'); }
   finally { note.remove(); }
 }

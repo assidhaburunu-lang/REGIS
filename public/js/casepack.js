@@ -4,6 +4,12 @@
    Colour of each complaint bar: green = lodged, blue = not lodged, orange = returned/deferred, grey = not decided yet. */
 
 const PACK_COLORS = { lodge: '00B050', not_lodge: '0070C0', return_officer: 'C55A11', deferred: 'C55A11', none: '7F7F7F' };
+// Dhivehi names of the catalogue's rights categories (the catalogue itself has no Dhivehi labels yet), and of the "not lodged" reasons.
+const DV_RIGHTS = { VC01: 'ދިރިހުރުމުގެ ޙައްޤު', VC02: 'މިނިވަންކަމާއި ސަލާމަތީ ޙައްޤު', VC03: 'ޢަދުލުވެރި ޝަރީޢަތާއި ޢަދުލުއިންޞާފު ހޯދުމުގެ ޙައްޤު', VC04: 'ފާޅުކުރުމާއި މަޢުލޫމާތު ހޯދުމުގެ މިނިވަންކަން',
+  VC05: 'ޖަމާޢަތްތަކުގައި ބައިވެރިވުމާއި އެއްތަނަކަށް ޖަމާވުމުގެ މިނިވަންކަން', VC06: 'ވަކިވަކި ފަރުދުންގެ ސިއްރާއި އާއިލީ ދިރިއުޅުމުގެ ޙައްޤު', VC07: 'ހަދަރުދޫކޮށް ކުރާ ޢަމަލުތަކާއި އަނިޔާއިން ސަލާމަތްވުމުގެ ޙައްޤު', VC08: 'ހަމަހަމަކަމާއި ތަފާތުކުރުމުން ސަލާމަތްވުމުގެ ޙައްޤު',
+  VC09: 'ތަޢުލީމުގެ ޙައްޤު', VC10: 'ޞިއްޙަތުގެ ޙައްޤު', VC11: 'ފުދޭ ގެދޮރުގެ ޙައްޤު', VC12: 'މަސައްކަތާއި ވަޒީފާގެ ޙައްޤުތައް', VC13: 'ކާނާއާއި ފެނާއި ފުދޭ މިންވަރެއްގެ ދިރިއުޅުމުގެ ޙައްޤު',
+  VC14: 'އިޖުތިމާޢީ ރައްކާތެރިކަމުގެ ޙައްޤު', VC15: 'ސަޤާފީ ޙައްޤުތައް', VC16: 'ސާފު ތިމާވެށީގެ ޙައްޤު' };
+const DV_NL_REASONS = { "Outside the Commission's mandate": 'ކޮމިޝަނުގެ އިޚްތިޞާޞާ ބޭރު', 'Insufficient information after clarification': 'ވުޒާހަތު ހޯދުމަށްފަހުވެސް މަޢުލޫމާތު ފުދިގެން ނުދޭ', 'Complaint withdrawn by the complainant': 'ޝަކުވާ ހުށަހެޅި ފަރާތުން ޝަކުވާ ނަގާލައިފި', 'Matter already before a court': 'މައްސަލަ މިހާރުވެސް ކޯޓެއްގައި ހުރި', 'Resolved between the parties': 'ފަރާތްތަކުގެ މެދުގައި ހައްލުވެއްޖެ', 'Duplicate of another complaint': 'އެހެން ޝަކުވާއެއްގެ ތަކުރާރެއް', 'Other': 'އެހެނިހެން' };
 const PACK_TINTS = { '00B050': 'E2F0D9', '0070C0': 'DDEBF7', 'C55A11': 'FBE5D6', '7F7F7F': 'EDEDED' };
 const PACK_L = {
   dv: {
@@ -40,13 +46,13 @@ function packData(mid, lang) {
     const officer = entries(c.reviews).filter(r => r.kind === 'officer' && !sup(c).has(r.id)).sort((a, b) => byAt(b, a)).map(r => r.text + (r.questions ? `\n${lang === 'dv' ? 'ސުވާލުތައް:' : 'Questions:'}\n${r.questions}` : ''));
     const pr = c.panelRequest || {};
     if (pr.requested) officer.push(`${L.requested}\n${pr.requested}`); if (pr.issues) officer.push(`${L.issues}\n${pr.issues}`);
-    const decision = d ? [L.out[oc] || outcomeLabel(oc), d.rationale || '', d.reason ? `${L.reason}\n${d.reason}` : '', d.clarify ? `${L.clarify}\n${d.clarify}` : ''].filter(Boolean) : [L.out.none];
+    const decision = d ? [L.out[oc] || outcomeLabel(oc), d.rationale || '', d.reason ? `${L.reason}\n${lang === 'dv' ? (DV_NL_REASONS[d.reason] || d.reason) : d.reason}` : '', d.clarify ? `${L.clarify}\n${d.clarify}` : ''].filter(Boolean) : [L.out.none];
     return {
       n: i + 1, oc, color: PACK_COLORS[oc] || PACK_COLORS.none, outcome: L.out[oc] || oc,
       fields: [c.cmsRef || L.none, c.regNo, briefDate(String(c.dateReceived || c.createdAt || today()), L),
         show ? (cp.name || L.none) : L.conf,
         !show ? L.conf : vs.length ? vs.map(v => v.name).join('، ') : (c.victimSame ? (cp.name || L.same) : L.none),
-        c.respondent?.name || L.none, [c.category, c.subcategory].filter(Boolean).join(' — ') || L.none],
+        c.respondent?.name || L.none, (lang === 'dv' && (catIndex().byIssue[clsOf(c)?.issueId]?.dv || DV_RIGHTS[clsOf(c)?.catId])) || [c.category, c.subcategory].filter(Boolean).join(' — ') || L.none],
       summary: show || !c.confidential ? (c.summary || L.none) : L.conf,
       officerName: c.assignedTo ? nm(c.assignedTo) : '', officer: officer.length ? officer : [L.noComment], decision,
     };
