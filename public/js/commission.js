@@ -26,12 +26,12 @@ async function applyCommission(c, did, o) {
       patch.clarification = { text: q, due: addWorkDays(today(), cfg().sla.actionDays), meetingId: d.meetingId, at, byCommission: true }; patch.nextAction = 'Clarify and resubmit to the panel'; patch.nextActionDue = addWorkDays(today(), cfg().sla.actionDays);
     }
   }
-  if (eff === 'lodge' || eff === 'not_lodge') { patch.interim = startInterim(eff, o.meetingDate); patch.nextAction = 'Send the interim letter to the complainant'; patch.nextActionDue = patch.interim.due; notes.push('interim letter to be sent by the Registration Officer'); }
+  if (eff === 'lodge' || eff === 'not_lodge') { patch.interim = startInterim(eff, o.meetingDate); patch.nextAction = 'Send the response letter to the complainant'; patch.nextActionDue = patch.interim.due; notes.push('interim letter to be sent by the Registration Officer'); }
   patch.stage = stage;
   await updC(c.id, patch, { stage, note: notes.join('; '), action: approved ? 'commission.approve' : 'commission.change' });
   notify([c.assignedTo, d.by, ...supervisors()], `Commission ${approved ? 'approved' : 'changed'} the panel decision on ${c.regNo}: ${outcomeLabel(eff)}`, c.id);
   if (eff === 'lodge') notify(staffIds('investigation'), `New lodged complaint forwarded: ${c.regNo}`, c.id);
-  if (eff !== 'return_officer') notify([c.assignedTo], `Send the interim letter for ${c.regNo} (${outcomeLabel(eff)})`, c.id);
+  if (eff !== 'return_officer') notify([c.assignedTo], `Send the response letter for ${c.regNo} (${outcomeLabel(eff)})`, c.id);
 }
 
 function commissionFields(d, multi = false) {

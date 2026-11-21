@@ -5,11 +5,11 @@
 // Workload points per open case, by how much officer work the stage still needs.
 const LOAD_W = { registered: 0, prelim_review: 3, further_work: 3, ready_panel: 1, on_agenda: 1, commission: 0.5, further_investigation: 1, next_step: 0, referred: 0, closed: 0 };
 function officerItems(id) {
-  // Things with a due date the officer is responsible for: the next action on each open case, and pending interim letters.
+  // Things with a due date the officer is responsible for: the next action on each open case, and pending response letters.
   const out = [];
   vals(S.complaints).filter(c => c.assignedTo === id).forEach(c => {
     if (!isDone(c)) out.push({ c, kind: 'case', due: c.nextActionDue || null, text: c.nextAction || stageLabel(c.stage) });
-    if (interimPending(c)) out.push({ c, kind: 'interim', due: c.interim.due || null, text: `Interim letter (${c.interim.outcome === 'lodge' ? 'lodged' : 'not lodged'})` });
+    if (interimPending(c)) out.push({ c, kind: 'interim', due: c.interim.due || null, text: `Response letter (${c.interim.outcome === 'lodge' ? 'lodged' : 'not lodged'})` });
   });
   return out.sort((a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')));
 }
@@ -54,7 +54,7 @@ VIEWS.assignation = () => {
       : '<div class="empty">No new complaints are waiting for an officer.</div>'}
   </div>
 
-  <div class="card section"><div class="card-head"><h2>Due dates in the next 10 working days</h2><span class="muted small">Number of case actions and interim letters due per officer per day</span></div>
+  <div class="card section"><div class="card-head"><h2>Due dates in the next 10 working days</h2><span class="muted small">Number of case actions and response letters due per officer per day</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>Officer</th><th class="r">Overdue</th>${days.map(d => `<th class="r" style="white-space:nowrap">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wday(d)]}<br>${ltrIso(stripBidi(fmtD(d)).slice(0, 6))}</th>`).join('')}<th class="r">No date</th></tr></thead><tbody>
       ${offs.map(o => `<tr><td style="white-space:nowrap"><a href="#user-${esc(o.id)}">${esc(nm(o.id))}</a></td><td class="r" style="${o.overdue.length ? 'color:#b91c1c;font-weight:700' : ''}">${o.overdue.length || ''}</td>${days.map(d => dueCell(o, d)).join('')}<td class="r muted">${o.items.filter(x => !x.due).length || ''}</td></tr>`).join('')}
     </tbody></table></div></div>
@@ -63,11 +63,11 @@ VIEWS.assignation = () => {
       <div class="card-head" style="align-items:flex-start"><div><h2 style="margin:0">${esc(nm(o.id))}</h2><div class="small muted">${o.open.length} open case${o.open.length === 1 ? '' : 's'} · ${o.recent} assigned in the last 5 working days${o.duty === 'today' ? ' · <b style="color:#9a3412">on 1424 duty today</b>' : o.duty === 'next' ? ' · on 1424 duty next working day' : ''}</div></div>
         ${o.away ? pill('On leave until ' + fmtD(o.away.to), 'bad') : o.leaveNext ? pill('Leave from ' + fmtD(o.leaveNext.from), 'warn') : i === 0 && queue.length ? pill('Lightest workload', 'ok') : ''}</div>
       <div class="asg-load"><div class="bar-track"><span class="bar-fill" style="display:block;width:${o.pts / maxPts * 100}%;background:${o.pts / maxPts > 0.75 ? '#dc2626' : o.pts / maxPts > 0.45 ? '#d97706' : '#16a34a'}"></span></div><b>${o.pts}</b><span class="small muted">pts</span></div>
-      <div class="asg-stats"><span><b>${o.prelim}</b> in review</span><span style="${o.overdue.length ? 'color:#b91c1c' : ''}"><b>${o.overdue.length}</b> overdue</span><span><b>${o.dueToday.length}</b> due today</span><span><b>${o.soon.length}</b> due in 5 days</span><span><b>${o.interim.length}</b> interim letters</span></div>
+      <div class="asg-stats"><span><b>${o.prelim}</b> in review</span><span style="${o.overdue.length ? 'color:#b91c1c' : ''}"><b>${o.overdue.length}</b> overdue</span><span><b>${o.dueToday.length}</b> due today</span><span><b>${o.soon.length}</b> due in 5 days</span><span><b>${o.interim.length}</b> response letters</span></div>
       ${o.items.length ? `<div class="tbl-wrap asg-list"><table><thead><tr><th>Case</th><th>Due</th><th>Next action</th></tr></thead><tbody>${o.items.slice(0, 12).map(x => `<tr class="click" data-act="openCase" data-id="${esc(x.c.id)}"><td style="white-space:nowrap">${caseLink(x.c)}<div>${stagePill(x.c.stage)}</div></td><td style="white-space:nowrap">${x.due ? pill(fmtD(x.due), tone(x)) : '<span class="muted">—</span>'}${x.due && x.due < td ? `<div class="small" style="color:#b91c1c">${workDays(x.due, td)} working day${workDays(x.due, td) === 1 ? '' : 's'} late</div>` : ''}</td><td class="small">${esc(x.text)}</td></tr>`).join('')}</tbody></table></div>${o.items.length > 12 ? `<p class="small muted" style="margin:6px 0 0">and ${o.items.length - 12} more · <a href="#user-${esc(o.id)}">see all</a></p>` : ''}`
         : '<div class="empty small">No open cases.</div>'}
     </div>`).join('') || '<div class="card"><div class="empty">No active Registration Officers. Give staff the Registration Officer role under Administration.</div></div>'}</div>
-  <p class="small muted">Workload points: 3 for each case in preliminary review or returned for clarification, 1 for each case ready for or on a panel agenda, 0.5 for each awaiting the Commission, 1 for each interim letter to send, and 2 more for each overdue item. The suggested officer has the fewest points; being on 1424 duty today adds 3 and leave starting within 5 working days adds 6. Officers on leave today (Staff leave calendar) are never suggested.</p>`;
+  <p class="small muted">Workload points: 3 for each case in preliminary review or returned for clarification, 1 for each case ready for or on a panel agenda, 0.5 for each awaiting the Commission, 1 for each response letter to send, and 2 more for each overdue item. The suggested officer has the fewest points; being on 1424 duty today adds 3 and leave starting within 5 working days adds 6. Officers on leave today (Staff leave calendar) are never suggested.</p>`;
 };
 ACT.asgGo = el => { const id = el.dataset.id; const to = $('#asg_' + id)?.value; openAssign(id, to); };
 ACT.asgAll = () => {

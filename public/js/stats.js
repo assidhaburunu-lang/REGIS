@@ -268,7 +268,7 @@ function lodgeSectionHTML(st, f) {
       ${statTile('Returned for clarification', ids(L.returned), 'Cases returned in the period', 'warn', 'Returned in period')}
       ${statTile('Awaiting Commission', st.all.filter(c => pendingCommission(c).length).map(c => c.id), 'Panel decided; not yet final', 'info', 'Awaiting Commission decision')}
       ${statTile('Changed by the Commission', st.all.filter(c => vals(c.decisions).some(d => d.commission && d.commission.status === 'rejected' && inP(d.commission.at, f))).map(c => c.id), (() => { const ds = st.all.flatMap(c => vals(c.decisions).filter(d => d.commission && inP(d.commission.at, f))); return ds.length ? `Commission agreed with ${pctOf(ds.filter(d => d.commission.status === 'approved').length, ds.length)}% of ${ds.length}` : 'No Commission decisions in period'; })(), 'bad', 'Panel decision changed by the Commission')}
-      ${statTile('Interim letters to send', st.all.filter(interimPending).map(c => c.id), `${st.all.filter(c => interimPending(c) && c.interim.due < today()).length} overdue · ${st.all.filter(c => interimSent(c) && inP(c.interim.sentAt, f)).length} sent in period`, 'warn', 'Interim letter to send')}
+      ${statTile('Response letters to send', st.all.filter(interimPending).map(c => c.id), `${st.all.filter(c => interimPending(c) && c.interim.due < today()).length} overdue · ${st.all.filter(c => interimSent(c) && inP(c.interim.sentAt, f)).length} sent in period`, 'warn', 'Response letter to send')}
       <div class="tile" style="cursor:default"><div class="k">Median working days to final decision</div><div class="v num">${fmtN(median(L.days), 1)}</div><div class="s">From receipt · n=${L.days.length}</div></div>
     </div>
     ${tot ? `<div class="grid2">

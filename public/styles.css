@@ -476,3 +476,7 @@ html[dir="rtl"] :is(td, th).r { text-align: left; }
 .duty-chart text.we { fill: #b91c1c; }
 .duty-chart text.td { text-decoration: underline; font-weight: 800; }
 .duty-chart text.mo { font-size: 11px; font-weight: 700; fill: #334155; }
+
+/* Interim phase row actions: stacked so the table fits */
+.int-acts { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 140px; }
+.int-acts .btn { justify-content: center; text-align: center; }

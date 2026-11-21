@@ -18,7 +18,7 @@ const PRESETS = {
   on_agenda: { label: 'On a panel agenda', fn: c => c.stage === 'on_agenda' },
   lodged: { label: 'Lodged — forwarded to Investigation', fn: c => isLodged(c) },
   not_lodged: { label: 'Not lodged', fn: c => isNotLodged(c) },
-  interim_pending: { label: 'Interim letter to send', fn: c => interimPending(c) },
+  interim_pending: { label: 'Response letter to send', fn: c => interimPending(c) },
   awaiting_commission: { label: 'Awaiting Commission decision', fn: c => pendingCommission(c).length > 0 },
   returned: { label: 'Returned for clarification', fn: c => c.stage === 'further_work' },
   awaiting_decision: { label: 'Awaiting a panel decision', fn: c => c.stage === 'ready_panel' || c.stage === 'on_agenda' },
@@ -114,7 +114,7 @@ function myCasesHTML() {
     ['With panel / Commission', open.filter(c => ['ready_panel', 'on_agenda', 'commission'].includes(c.stage)), 'ok', 'Awaiting a decision'],
     ['Due in 7 days', open.filter(c => c.nextActionDue && c.nextActionDue >= td && c.nextActionDue <= wk), 'warn', 'Next action deadline'],
     ['Overdue', open.filter(isOverdue), 'bad', 'Missed deadlines'],
-    ['Interim letters to send', mine.filter(interimPending), 'warn', 'Commission has decided'],
+    ['Response letters to send', mine.filter(interimPending), 'warn', 'Commission has decided'],
   ];
   const byStage = STAGES.map(st => ({ st, n: open.filter(c => c.stage === st.k).length })).filter(x => x.n); const maxS = Math.max(1, ...byStage.map(x => x.n));
   const ageB = [['0–30 days', 0, 30], ['31–60 days', 31, 60], ['61–90 days', 61, 90], ['Over 90 days', 91, 1e9]].map(([l, a, b]) => ({ l, list: open.filter(c => { const d = workDays(c.dateReceived, td); return d >= a && d <= b; }) }));
@@ -136,7 +136,7 @@ function myTasks(cs) {
     if (c.assignedTo !== me) openActions(c).filter(a => a.owner === me).forEach(a => mk({ cid: c.id, text: a.text, sub: `${esc(c.regNo)} · Panel task`, due: a.due }));
     if (c.assignedTo === me) openReqs(c).forEach(r => mk({ cid: c.id, text: `Information awaited from ${r.to}`, sub: esc(c.regNo), due: r.due }));
     if (can('commission')) pendingCommission(c).forEach(d => mk({ href: '#commission', text: 'Record the Commission decision on the panel decision', sub: `${esc(c.regNo)} · Panel: ${esc(outcomeLabel(d.outcome))}`, tag: 'Commission' }));
-    if (interimPending(c) && c.assignedTo === me) mk({ cid: c.id, text: `Send the interim letter (${c.interim.outcome === 'lodge' ? 'lodged' : 'not lodged'})`, sub: esc(c.regNo) + ' · Interim phase', due: c.interim.due });
+    if (interimPending(c) && c.assignedTo === me) mk({ cid: c.id, text: `Send the response letter (${c.interim.outcome === 'lodge' ? 'lodged' : 'not lodged'})`, sub: esc(c.regNo) + ' · Interim phase', due: c.interim.due });
     if (hasRole('investigation')) entries(c.referrals).filter(r => r.status === 'sent').forEach(r => mk({ href: '#referrals', text: 'Acknowledge investigation referral', sub: esc(c.regNo), tag: 'Referral' }));
     if (can('referralManage')) entries(c.referrals).filter(r => r.status === 'draft').forEach(r => mk({ cid: c.id, text: 'Send investigation referral', sub: esc(c.regNo), tag: 'Referral' }));
   });
@@ -434,7 +434,7 @@ function myPanelCasesHTML(mine) {
     <div class="tabs" style="margin-bottom:10px"><button class="${tab === 'panel' ? 'on' : ''}" data-act="myPanelTab" data-tab="panel">With the panel / Commission<span class="cnt">${withPanel.length}</span></button><button class="${tab === 'decided' ? 'on' : ''}" data-act="myPanelTab" data-tab="decided">Decided by the Commission<span class="cnt">${decided.length}</span></button></div>
     ${tab === 'panel'
       ? (withPanel.length ? `<div class="tbl-wrap"><table><thead><tr><th>Complaint</th><th>${esc(t('victim'))}</th><th>${esc(t('stage'))}</th><th>Ready since</th><th>Panel meeting</th><th>Panel decision</th><th>Commission</th></tr></thead><tbody>${panelRows}</tbody></table></div>` : '<div class="empty">None of your complaints are with the panel or the Commission right now.</div>')
-      : (decided.length ? `<div class="tbl-wrap"><table><thead><tr><th>Complaint</th><th>${esc(t('victim'))}</th><th>Panel decision</th><th>Commission</th><th>Final decision</th><th>Decided</th><th>Interim letter</th></tr></thead><tbody>${decRows}</tbody></table></div>` : '<div class="empty">No final decisions yet on your complaints.</div>')}
+      : (decided.length ? `<div class="tbl-wrap"><table><thead><tr><th>Complaint</th><th>${esc(t('victim'))}</th><th>Panel decision</th><th>Commission</th><th>Final decision</th><th>Decided</th><th>Response letter</th></tr></thead><tbody>${decRows}</tbody></table></div>` : '<div class="empty">No final decisions yet on your complaints.</div>')}
   </div>`;
 }
 ACT.myPanelTab = el => { S.myPanelTab = el.dataset.tab; render(); };

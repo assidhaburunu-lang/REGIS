@@ -221,7 +221,7 @@ function overdueItems(c) {
   if (!isDone(c) && c.nextActionDue && c.nextActionDue < td) out.push({ kind: 'next', text: c.nextAction || 'Next action', due: c.nextActionDue });
   openReqs(c).forEach(r => { if (r.due && r.due < td) out.push({ kind: 'request', text: 'Information request to ' + (r.to || '—'), due: r.due, id: r.id }); });
   openActions(c).forEach(a => { if (a.due && a.due < td) out.push({ kind: 'action', text: a.text, due: a.due, id: a.id }); });
-  if (c.interim && c.interim.status === 'pending' && c.interim.due < td) out.push({ kind: 'interim', text: 'Interim letter to the complainant', due: c.interim.due });
+  if (c.interim && c.interim.status === 'pending' && c.interim.due < td) out.push({ kind: 'interim', text: 'Response letter to the complainant', due: c.interim.due });
   return out;
 }
 const isOverdue = c => overdueItems(c).length > 0;
