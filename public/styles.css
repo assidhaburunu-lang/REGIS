@@ -311,8 +311,17 @@ html[lang="dv"] .tabs button { font-family: var(--font-thaana); }
 .dw-block { color: #fff; }
 .dw-block b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dw-empty { border: 2px dashed #94a3b8; color: #475569; align-items: center; justify-content: center; background: rgba(241, 245, 249, .7); }
-.duty-spark { display: flex; align-items: flex-end; gap: 2px; height: 120px; padding: 6px 0; border-bottom: 1px solid #cbd5e1; margin-bottom: 4px; }
-.duty-spark > div { flex: 1; min-width: 2px; border-radius: 2px 2px 0 0; }
+.duty-spark { display: flex; align-items: stretch; gap: 2px; height: 170px; padding: 4px 0 2px; margin-bottom: 4px; direction: ltr; }
+.duty-spark .ds-col { flex: 1; min-width: 14px; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; border-radius: 3px; }
+.duty-spark .ds-col.we { background: rgba(226, 232, 240, .6); }
+.duty-spark .ds-plot { flex: 1; position: relative; margin-top: 15px; }
+.duty-spark .ds-n { position: absolute; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; color: #0f172a; line-height: 14px; }
+.duty-spark .ds-n.nl { color: #dc2626; }
+.duty-spark .ds-bar { position: absolute; bottom: 0; left: 1px; right: 1px; border-radius: 2px 2px 0 0; }
+.duty-spark .ds-d { text-align: center; font-size: 11px; font-weight: 600; color: #1e293b; line-height: 14px; border-top: 1px solid #94a3b8; padding-top: 2px; }
+.duty-spark .ds-d.td { text-decoration: underline; font-weight: 800; }
+.duty-spark .ds-w { text-align: center; font-size: 9.5px; color: #64748b; line-height: 12px; }
+.duty-spark .ds-col.we .ds-d, .duty-spark .ds-col.we .ds-w { color: #b91c1c; }
 @media (max-width: 760px) { .duty-cell { min-height: 70px; padding: 5px; font-size: 11px; } .duty-cell .who { font-size: 10px; padding: 1px 4px; } .duty-week { overflow-x: auto; grid-template-columns: 44px repeat(7, 90px); } }
 
 /* ---------- Detention settings: monthly stacked columns ---------- */
