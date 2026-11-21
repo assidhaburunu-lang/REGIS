@@ -458,3 +458,12 @@ html[dir="rtl"] :is(td, th).r { text-align: left; }
 .lp-bar.e { border-start-end-radius: 4px; border-end-end-radius: 4px; margin-inline-end: 1px; }
 .lp-bar:hover { filter: brightness(1.12); }
 .lp-more { position: relative; z-index: 1; font-size: 9.5px; font-weight: 700; color: #334155; text-align: center; line-height: 13px; }
+
+/* 1424 calls-per-day chart labels */
+.duty-chart text.cc { font-size: 11px; font-weight: 700; fill: #0f172a; }
+.duty-chart text.cc.nl { fill: #dc2626; }
+.duty-chart text.dn { font-size: 11px; font-weight: 600; fill: #1e293b; }
+.duty-chart text.wd { font-size: 9.5px; fill: #64748b; }
+.duty-chart text.we { fill: #b91c1c; }
+.duty-chart text.td { text-decoration: underline; font-weight: 800; }
+.duty-chart text.mo { font-size: 11px; font-weight: 700; fill: #334155; }

@@ -158,19 +158,26 @@ ACT.dutyExport = () => {
 
 /* ---------- 1424 calls on the Statistics page (uses the page's date range; past and today only) ---------- */
 function dutyRange(f) { const td = today(); return Object.entries(S.duty || {}).filter(([d]) => d >= (f.from || '0000') && d <= (f.to || '9999') && d <= td).sort((a, b) => a[0].localeCompare(b[0])); }
+// Calls per duty day: one bar per day with the call count above it and the day number (and weekday) below it.
+// Long periods keep a readable bar width and scroll sideways instead of squeezing the labels.
 function dutyDailySVG(days) {
-  const W = 720, H = 240, L = 34, R = 10, Tp = 14, B = 30; const n = days.length; const vs = days.map(([, x]) => dutyCalls(x)); const max = Math.max(1, ...vs);
+  const n = days.length; const vs = days.map(([, x]) => dutyCalls(x)); const max = Math.max(1, ...vs);
+  const SLOT = 26, L = 34, R = 12, Tp = 22, B = 48, H = 270; const W = Math.max(720, L + R + n * SLOT); const bw = (W - L - R) / n;
   const nice = x => { const p = 10 ** Math.floor(Math.log10(x)); const r = x / p; return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * p; }; const step = max <= 4 ? 1 : nice(max / 4); const top = Math.ceil(max / step) * step;
-  const y = v => Tp + (H - Tp - B) * (1 - v / top); const bw = (W - L - R) / n;
+  const y = v => Tp + (H - Tp - B) * (1 - v / top); const td = today();
   let g = ''; for (let v = 0; v <= top; v += step) g += `<line class="gridl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-  days.forEach(([d, x], i) => { const v = vs[i]; const lg = vals(x.logs).length; const bx = L + i * bw + (bw > 4 ? bw * 0.12 : 0); const w = Math.max(1, bw > 4 ? bw * 0.76 : bw - 0.3);
-    g += `<rect x="${bx}" y="${lg ? y(v) : y(0) - 3}" width="${w}" height="${lg ? Math.max(0, y(0) - y(v)) : 3}" fill="${lg ? dutyColor(x.officer) : '#dc2626'}" rx="1"><title>${fmtD(d)} (${WD[dow(d)]}) · ${esc(nm(x.officer))}: ${lg ? v + ' calls' : 'not logged'}</title></rect>`;
-    if (d.endsWith('-01') || (i === 0 && +d.slice(8) <= 24)) g += `<line x1="${L + i * bw}" x2="${L + i * bw}" y1="${y(0)}" y2="${y(0) + 5}" stroke="#475569"/><text x="${L + i * bw + 2}" y="${H - 8}">${MONTHS[+d.slice(5, 7) - 1]}${d.slice(5, 7) === '01' || i === 0 ? ' ' + d.slice(0, 4) : ''}</text>`; });
-  // 7-day moving average over logged days
+  days.forEach(([d, x], i) => {
+    const v = vs[i]; const lg = vals(x.logs).length; const cx = L + i * bw + bw / 2; const w = Math.min(bw * 0.72, 30); const we = !isWorkDay(d);
+    if (we) g += `<rect x="${L + i * bw}" y="${Tp}" width="${bw}" height="${y(0) - Tp}" fill="#e2e8f0" opacity=".55"/>`;
+    g += `<rect x="${cx - w / 2}" y="${lg ? y(v) : y(0) - 3}" width="${w}" height="${lg ? Math.max(0, y(0) - y(v)) : 3}" fill="${lg ? dutyColor(x.officer) : '#dc2626'}" rx="2"><title>${fmtD(d)} (${WD[dow(d)]}) · ${esc(nm(x.officer))}: ${lg ? v + ' calls' : 'not logged'}</title></rect>`;
+    g += `<text class="cc ${lg ? '' : 'nl'}" x="${cx}" y="${(lg ? y(v) : y(0) - 3) - 5}" text-anchor="middle">${lg ? v : '–'}</text>`;
+    g += `<text class="dn ${we ? 'we' : ''} ${d === td ? 'td' : ''}" x="${cx}" y="${y(0) + 15}" text-anchor="middle">${+d.slice(8)}</text><text class="wd ${we ? 'we' : ''}" x="${cx}" y="${y(0) + 27}" text-anchor="middle">${WD[dow(d)].charAt(0)}</text>`;
+    if (i === 0 || d.endsWith('-01')) g += `<line x1="${L + i * bw}" x2="${L + i * bw}" y1="${Tp}" y2="${H - 4}" stroke="#64748b" stroke-dasharray="3 3"/><text class="mo" x="${L + i * bw + 4}" y="${H - 6}">${MONTHS[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}</text>`;
+  });
   const avg = days.map((_, i) => { const w = days.slice(Math.max(0, i - 6), i + 1).filter(([, x]) => vals(x.logs).length); return w.length ? w.reduce((s, [, x]) => s + dutyCalls(x), 0) / w.length : null; });
   const pts = avg.map((v, i) => v == null ? null : `${L + i * bw + bw / 2},${y(v)}`).filter(Boolean);
-  if (pts.length > 1) g += `<polyline points="${pts.join(' ')}" fill="none" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>`;
-  return `<div class="colchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="1424 calls per day">${g}</svg></div>`;
+  if (pts.length > 1) g += `<polyline points="${pts.join(' ')}" fill="none" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" opacity=".75"/>`;
+  return `<div class="colchart duty-chart" ${W > 720 ? 'style="overflow-x:auto"' : ''}><svg viewBox="0 0 ${W} ${H}" ${W > 720 ? `style="width:${W}px;max-width:none"` : ''} role="img" aria-label="1424 calls per day">${g}</svg></div>`;
 }
 function dutyStatsSection(f) {
   const days = dutyRange(f); if (!days.length) return '';
